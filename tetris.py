@@ -4,26 +4,29 @@ from helpers import *
 column_start_pixel = [0, 108, 98, 88, 78, 68, 58, 48, 38, 28, 18]
 row_start_pixel = [0, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210]
 
-class FailingPiece:
+class FallingPiece:
     def __init__(self):
         self.column = 5 # of 10
         self.row = 1 # of 18
         self.shape = random.randint(1, 7) #1=i,2=o,3=t,4=j,5=l,6=s,7=z
         self.orientation = 1 # of 4
-        if self.shape == 1:
-            self.color = LBL
-        elif self.shape == 2:
-            self.color = YEL
-        elif self.shape == 3:
-            self.color = PUR
-        elif self.shape == 4:
-            self.color = DBL
-        elif self.shape == 5:
-            self.color = ORG
-        elif self.shape == 6:
-            self.color = GRN
-        else:
-            self.color = RED
+        self.color = determine_tetrominoe_color(self.shape)
+
+def determine_tetrominoe_color(shape):
+    if shape == 1:
+        return LBL
+    elif shape == 2:
+        return YEL
+    elif shape == 3:
+        return PUR
+    elif shape == 4:
+        return DBL
+    elif shape == 5:
+        return ORG
+    elif shape == 6:
+        return GRN
+    else:
+        return RED
 
 def draw_brick_block(x, y):
     # draw the 10x10 gray base
@@ -56,8 +59,40 @@ def draw_brick_borders():
         draw_brick_block(x, 118)
     for x in range(31, 209, 10):
         draw_brick_block(x, 128)
-    # Clear any brick overflow on the playfield
-    draw_rectangle(31, 18, 180, 100, BLK)
+
+def draw_tetrominoe(tetrominoe, color):
+    if tetrominoe.shape == 1: # i
+        if tetrominoe.orientation == 1 or tetrominoe.orientation == 3: # horizontal
+            draw_rectangle(row_start_pixel[tetrominoe.row], column_start_pixel[tetrominoe.column]-20, 10, 40, color)
+        else: # vertical
+            draw_rectangle(row_start_pixel[tetrominoe.row], column_start_pixel[tetrominoe.column], 40, 10, color)
+    elif tetrominoe.shape == 2: # o
+        draw_rectangle(row_start_pixel[tetrominoe.row], column_start_pixel[tetrominoe.column]-10, 20, 20, color)
+    elif tetrominoe.shape == 3: # t
+        if tetrominoe.orientation == 1: # horizontal, down
+            draw_rectangle(row_start_pixel[tetrominoe.row], column_start_pixel[tetrominoe.column]-10, 10, 30, color)
+            draw_rectangle(row_start_pixel[tetrominoe.row]+10, column_start_pixel[tetrominoe.column], 10, 10, color)
+        # todo
+    elif tetrominoe.shape == 4: # j
+        if tetrominoe.orientation == 1: # horizontal, down
+            draw_rectangle(row_start_pixel[tetrominoe.row], column_start_pixel[tetrominoe.column]-10, 10, 30, color)
+            draw_rectangle(row_start_pixel[tetrominoe.row]+10, column_start_pixel[tetrominoe.column]-10, 10, 10, color)
+        #todo
+    elif tetrominoe.shape == 5: # l
+        if tetrominoe.orientation == 1: # horizontal, down
+            draw_rectangle(row_start_pixel[tetrominoe.row], column_start_pixel[tetrominoe.column]-10, 10, 30, color)
+            draw_rectangle(row_start_pixel[tetrominoe.row]+10, column_start_pixel[tetrominoe.column]+10, 10, 10, color)
+        #todo
+    elif tetrominoe.shape == 6: # s
+        if tetrominoe.orientation == 1 or tetrominoe.orientation == 3: # horizontal, down
+            draw_rectangle(row_start_pixel[tetrominoe.row], column_start_pixel[tetrominoe.column]-10, 10, 20, color)
+            draw_rectangle(row_start_pixel[tetrominoe.row]+10, column_start_pixel[tetrominoe.column], 10, 20, color)
+        #todo
+    elif tetrominoe.shape == 7: # z
+        if tetrominoe.orientation == 1 or tetrominoe.orientation == 3: # horizontal, down
+            draw_rectangle(row_start_pixel[tetrominoe.row], column_start_pixel[tetrominoe.column], 10, 20, color)
+            draw_rectangle(row_start_pixel[tetrominoe.row]+10, column_start_pixel[tetrominoe.column]-10, 10, 20, color)
+        #todo
 
 def show_control_labels():
     # Clear any overflow on the top

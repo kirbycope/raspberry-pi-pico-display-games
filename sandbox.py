@@ -3,61 +3,71 @@ import random, utime
 from helpers import *
 from tetris import *
 
+#_falling_piece = None
+#def falling_piece():
+#    return _falling_piece
+
 def main():
     init_display()
-    draw_brick_borders()
     #debug_turn_on_axis()
-    #debug_turn_on_diag
-
-    falling_piece = FailingPiece()
-    draw_tetrominoe(falling_piece, falling_piece.color)
+    #debug_turn_on_diag()
+    global falling_piece
+    falling_piece = None
+    draw_brick_borders()
     show_control_labels()
     display.update()
-    
-    for x in range(16):
-        lower_piece(falling_piece)
-        show_control_labels()
-        display.update()
-        utime.sleep(.2)
+    while True:
+        if display.is_pressed(display.BUTTON_A):
+            display_clear()
+            display_set_pen_color(WTE)
+            display.text("End", 10, 10, 240, 4)
+            display.update()
+            break
+        elif display.is_pressed(display.BUTTON_B):
+            if falling_piece != None:
+                clear_falling_piece()
+            falling_piece = FallingPiece()
+        elif display.is_pressed(display.BUTTON_X):
+            try:
+                move_falling_piece_right()
+            except:
+                pass
+        elif display.is_pressed(display.BUTTON_Y):
+            try:
+                move_falling_piece_left()
+            except:
+                pass
+        if falling_piece != None:
+            try:
+                clear_falling_piece()
+                if falling_piece.row < 18:
+                    falling_piece.row+=1; # move the piece "down" a row
+                    draw_tetrominoe(falling_piece, falling_piece.color) # draw the piece in its new position
+                else:
+                    falling_piece = None
+                show_control_labels() # redraw due to overdrawn tetrominoe(s)
+                display.update()
+            except:
+                pass
+        utime.sleep(.1)
 
-def lower_piece(falling_piece):
-    draw_tetrominoe(falling_piece, BLK) # clear the piece
-    falling_piece.row+=1; # "move" it down a row
-    draw_tetrominoe(falling_piece, falling_piece.color) # draw the piece in its new position
+def clear_falling_piece():
+    try:
+        draw_tetrominoe(falling_piece, BLK)
+    except:
+        pass
 
-def draw_tetrominoe(tetrominoe, color):
-    if tetrominoe.shape == 1: # i
-        if tetrominoe.orientation == 1 or tetrominoe.orientation == 3: # horizontal
-            draw_rectangle(row_start_pixel[tetrominoe.row], column_start_pixel[tetrominoe.column]-20, 10, 40, color)
-        else: # vertical
-            draw_rectangle(row_start_pixel[tetrominoe.row], column_start_pixel[tetrominoe.column], 40, 10, color)
-    elif tetrominoe.shape == 2: # o
-        draw_rectangle(row_start_pixel[tetrominoe.row], column_start_pixel[tetrominoe.column]-10, 20, 20, color)
-    elif tetrominoe.shape == 3: # t
-        if tetrominoe.orientation == 1: # horizontal, down
-            draw_rectangle(row_start_pixel[tetrominoe.row], column_start_pixel[tetrominoe.column]-10, 10, 30, color)
-            draw_rectangle(row_start_pixel[tetrominoe.row]+10, column_start_pixel[tetrominoe.column], 10, 10, color)
-        # todo
-    elif tetrominoe.shape == 4: # j
-        if tetrominoe.orientation == 1: # horizontal, down
-            draw_rectangle(row_start_pixel[tetrominoe.row], column_start_pixel[tetrominoe.column]-10, 10, 30, color)
-            draw_rectangle(row_start_pixel[tetrominoe.row]+10, column_start_pixel[tetrominoe.column]-10, 10, 10, color)
-        #todo
-    elif tetrominoe.shape == 5: # l
-        if tetrominoe.orientation == 1: # horizontal, down
-            draw_rectangle(row_start_pixel[tetrominoe.row], column_start_pixel[tetrominoe.column]-10, 10, 30, color)
-            draw_rectangle(row_start_pixel[tetrominoe.row]+10, column_start_pixel[tetrominoe.column]+10, 10, 10, color)
-        #todo
-    elif tetrominoe.shape == 6: # s
-        if tetrominoe.orientation == 1 or tetrominoe.orientation == 3: # horizontal, down
-            draw_rectangle(row_start_pixel[tetrominoe.row], column_start_pixel[tetrominoe.column]-10, 10, 20, color)
-            draw_rectangle(row_start_pixel[tetrominoe.row]+10, column_start_pixel[tetrominoe.column], 10, 20, color)
-        #todo
-    elif tetrominoe.shape == 7: # z
-        if tetrominoe.orientation == 1 or tetrominoe.orientation == 3: # horizontal, down
-            draw_rectangle(row_start_pixel[tetrominoe.row], column_start_pixel[tetrominoe.column], 10, 20, color)
-            draw_rectangle(row_start_pixel[tetrominoe.row]+10, column_start_pixel[tetrominoe.column]-10, 10, 20, color)
-        #todo
+def move_falling_piece_right():
+    if falling_piece.column < 10:
+        clear_falling_piece()
+        falling_piece.column+=1; # "move" it right a column
+        draw_tetrominoe(falling_piece, falling_piece.color) # re-draw the piece
+
+def move_falling_piece_left():
+    if falling_piece.column > 1:
+        clear_falling_piece()
+        falling_piece.column-=1; # "move" it left a column
+        draw_tetrominoe(falling_piece, falling_piece.color) # re-draw the piece
 
 if __name__ == "__main__":
     main()
