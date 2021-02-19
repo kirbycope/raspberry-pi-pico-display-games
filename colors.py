@@ -1,0 +1,11 @@
+BLK=[0,0,0] #       Black
+BLU=[0,0,255] #     Blue
+DBL=[0,0,139] #     Dark Blue
+GRN=[0,255,0] #     Green
+GRY=[185,185,185] # Grey
+LBL=[173,216,230] # Light Blue
+ORG=[255,165,0] #   Orange
+PUR=[255,0,255] #   Purple
+RED=[255,0,0] #     Red
+WTE=[255,255,255] # White
+YEL=[255, 255,0] #  Yellow
