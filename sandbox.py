@@ -1,12 +1,14 @@
 import picodisplay as display
-import random, utime
+import random
+import utime
 from helpers import *
 from tetris import *
 
+
 def main():
     init_display()
-    #debug_turn_on_axis()
-    #debug_turn_on_diag()
+    # debug_turn_on_axis()
+    # debug_turn_on_diag()
     global falling_piece
     falling_piece = None
     draw_brick_borders()
@@ -27,16 +29,17 @@ def main():
             if falling_piece != None:
                 move_falling_piece_right()
         elif display.is_pressed(display.BUTTON_Y):
-           if falling_piece != None:
+            if falling_piece != None:
                 move_falling_piece_left()
         if falling_piece != None:
             if falling_piece.row+1 < 18:
                 clear_falling_piece()
-                falling_piece.row+=1; # move the piece "down" a row
-                draw_tetrominoe(falling_piece, falling_piece.color) # draw the piece in its new position
-                show_control_labels() # redraw due to overdrawn tetrominoe(s)
+                falling_piece.row += 1
+                draw_tetrominoe(falling_piece, falling_piece.color)
+                show_control_labels()
                 display.update()
         utime.sleep(.2)
+
 
 def clear_falling_piece():
     try:
@@ -44,17 +47,22 @@ def clear_falling_piece():
     except:
         pass
 
+
 def move_falling_piece_right():
     if falling_piece.column < 10:
         clear_falling_piece()
-        falling_piece.column+=1; # "move" it right a column
-        draw_tetrominoe(falling_piece, falling_piece.color) # re-draw the piece
+        falling_piece.column += 1  # "move" it right a column
+        # re-draw the piece
+        draw_tetrominoe(falling_piece, falling_piece.color)
+
 
 def move_falling_piece_left():
     if falling_piece.column > 1:
         clear_falling_piece()
-        falling_piece.column-=1; # "move" it left a column
-        draw_tetrominoe(falling_piece, falling_piece.color) # re-draw the piece
+        falling_piece.column -= 1  # "move" it left a column
+        # re-draw the piece
+        draw_tetrominoe(falling_piece, falling_piece.color)
+
 
 if __name__ == "__main__":
     main()

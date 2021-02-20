@@ -2,17 +2,21 @@ import picodisplay as display
 import utime
 import helpers
 
+
 def clip(section):
     if section == 0:
-        display.set_clip(1, 1, 120, 67) # only draw in the top-right section
+        display.set_clip(1, 1, 120, 67)  # only draw in the top-right section
     elif section == 1:
-        display.set_clip(120, 1, 120, 67) # only draw in the bottom-right section
+        # only draw in the bottom-right section
+        display.set_clip(120, 1, 120, 67)
     elif section == 2:
-        display.set_clip(120, 67, 120, 67) # only draw in the bottom-left section
+        # only draw in the bottom-left section
+        display.set_clip(120, 67, 120, 67)
     else:
-        display.set_clip(1, 67, 120, 67) # only draw in the top-left section
+        display.set_clip(1, 67, 120, 67)  # only draw in the top-left section
         section = -1
     return section+1
+
 
 def rainbow_wheel(width, height):
     section = 0
@@ -26,6 +30,7 @@ def rainbow_wheel(width, height):
         utime.sleep(0.1)
         if display.is_pressed(display.BUTTON_A):
             break
-        
+
+
 helpers.init_display()
 rainbow_wheel(120, 66)
