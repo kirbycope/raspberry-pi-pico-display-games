@@ -3,10 +3,6 @@ import random, utime
 from helpers import *
 from tetris import *
 
-#_falling_piece = None
-#def falling_piece():
-#    return _falling_piece
-
 def main():
     init_display()
     #debug_turn_on_axis()
@@ -28,28 +24,19 @@ def main():
                 clear_falling_piece()
             falling_piece = FallingPiece()
         elif display.is_pressed(display.BUTTON_X):
-            try:
+            if falling_piece != None:
                 move_falling_piece_right()
-            except:
-                pass
         elif display.is_pressed(display.BUTTON_Y):
-            try:
+           if falling_piece != None:
                 move_falling_piece_left()
-            except:
-                pass
         if falling_piece != None:
-            try:
+            if falling_piece.row+1 < 18:
                 clear_falling_piece()
-                if falling_piece.row < 18:
-                    falling_piece.row+=1; # move the piece "down" a row
-                    draw_tetrominoe(falling_piece, falling_piece.color) # draw the piece in its new position
-                else:
-                    falling_piece = None
+                falling_piece.row+=1; # move the piece "down" a row
+                draw_tetrominoe(falling_piece, falling_piece.color) # draw the piece in its new position
                 show_control_labels() # redraw due to overdrawn tetrominoe(s)
                 display.update()
-            except:
-                pass
-        utime.sleep(.1)
+        utime.sleep(.2)
 
 def clear_falling_piece():
     try:
