@@ -19,3 +19,4 @@ img_array = [
 
 ### Loaded Image on Pico Display
 ![Screenshot](/desktop/screen.jpg)
+![Screenshot](/desktop/screen_2.jpg)
