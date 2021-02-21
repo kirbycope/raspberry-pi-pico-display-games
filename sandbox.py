@@ -2,7 +2,7 @@ import picodisplay as display
 import random
 from helpers import *
 from tetris import *
-from screen import img_hex_array
+from screen import img_array
 import micropython
 
 micropython.alloc_emergency_exception_buf(100)
@@ -35,8 +35,8 @@ def main():
 
 
 def draw_image_from_array():
-    for x in range(len(img_hex_array)):
-        pixel = img_hex_array[x]
+    for x in range(len(img_array)):
+        pixel = img_array[x]
         pixel_info = pixel.split(",")
         rgb = (int(pixel_info[2]), int(pixel_info[3]), int(pixel_info[4]))
         draw_pixel(int(pixel_info[1]), int(pixel_info[0]), rgb)
