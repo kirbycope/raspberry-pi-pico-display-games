@@ -11,7 +11,7 @@ Converts an image into a list of "changes". The I2C display API available throug
 This is pretty-printed for the wiki, it is minified in the actual output. 
 ```python
 img_array = [
-    "0,0,0,255,0",
+    "0,0,0,255,0", # Pixel at (0, 0) has RGB of (0, 255, 0)
     "0,239,0,0,255",
     "2,3,255,255,255"
 ]
