@@ -6,7 +6,7 @@ Converts an image into a list of "changes". The I2C display API available throug
 ### BMP
 
 ![Screenshot](/desktop/screen.bmp)
-
+![Screenshot](/desktop/screen_2.bmp)
 
 ### Generated .py
 This is pretty-printed for the wiki, it is minified in the actual output. 
