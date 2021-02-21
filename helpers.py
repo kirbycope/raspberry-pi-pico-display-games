@@ -17,6 +17,14 @@ def init_display():
     display_clear()
 
 
+def clamp_column(value, min_value=1, max_value=10):
+    return min(max_value, max(min_value, value))
+
+
+def clamp_row(value, min_value=1, max_value=18):
+    return min(max_value, max(min_value, value))
+
+
 def debug_turn_on_axis():
     hH = int(display_height/2)
     hW = int(display_width/2)
@@ -39,10 +47,13 @@ def display_clear():
 def display_set_pen_color(rgb):
     display.set_pen(rgb[0], rgb[1], rgb[2])
 
-# //instructables.com/Pimoroni-Pico-Display-Workout/
+
+def draw_character(char, x, y, scale, rgb):
+    display_set_pen_color(rgb)
+    display.character(char_a, x, y, scale)
 
 
-def draw_line(x, y, xx, yy, rgb):
+def draw_line(x, y, xx, yy, rgb):  # //instructables.com/Pimoroni-Pico-Display-Workout/
     display_set_pen_color(rgb)
     if x > xx:
         t = x
@@ -98,3 +109,8 @@ def draw_ring_points(xc, yc, x, y):  # Draw 8 octants
     display.pixel(xc-y, yc+x)
     display.pixel(xc+y, yc-x)
     display.pixel(xc-y, yc-x)
+
+
+def draw_text(text, x, y, wrap=240, size=4, rgb=WTE):
+    display_set_pen_color(rgb)
+    display.text(text, x, y, wrap, size)

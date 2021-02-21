@@ -1,4 +1,5 @@
 import random
+import utime
 from helpers import *
 
 column_start_pixel = [0, 108, 98, 88, 78, 68, 58, 48, 38, 28, 18]
@@ -10,9 +11,20 @@ class FallingPiece:
     def __init__(self):
         self.column = 5  # of 10
         self.row = 1  # of 18
-        self.shape = random.randint(1, 7)  # 1=i,2=o,3=t,4=j,5=l,6=s,7=z
+        self.shape = random.randint(1, 7)
+        self.shap_name = determine_tetrominoe_shape_name(self.shape)
         self.orientation = 1  # of 4
         self.color = determine_tetrominoe_color(self.shape)
+
+    def __str__(self):
+        return str(self.__class__) + ": " + str(self.__dict__)
+
+
+def clear_piece(tetrominoe):
+    try:
+        draw_tetrominoe(tetrominoe, BLK)
+    except:
+        pass
 
 
 def determine_tetrominoe_color(shape):
@@ -30,6 +42,23 @@ def determine_tetrominoe_color(shape):
         return GRN
     else:
         return RED
+
+
+def determine_tetrominoe_shape_name(shape):
+    if shape == 1:
+        return "I"
+    elif shape == 2:
+        return "O"
+    elif shape == 3:
+        return "T"
+    elif shape == 4:
+        return "J"
+    elif shape == 5:
+        return "L"
+    elif shape == 6:
+        return "S"
+    else:
+        return "Z"
 
 
 def draw_brick_block(x, y):
@@ -114,6 +143,22 @@ def draw_tetrominoe(tetrominoe, color):
         # todo
 
 
+def move_falling_piece_left(falling_piece):
+    if falling_piece.column > 1:
+        clear_piece(falling_piece)
+        falling_piece.column -= 1
+        draw_tetrominoe(falling_piece, falling_piece.color)
+    return falling_piece
+
+
+def move_falling_piece_right(falling_piece):
+    if falling_piece.column < 10:
+        clear_piece(falling_piece)
+        falling_piece.column += 1
+        draw_tetrominoe(falling_piece, falling_piece.color)
+    return falling_piece
+
+
 def show_control_labels():
     # Clear any overflow on the top
     draw_rectangle(1, 1, 30, display_height, BLK)
@@ -145,3 +190,40 @@ def show_control_labels():
     draw_line(211, 1, 211, display_height, WTE)
     # Lower divider
     draw_line(211, 67, 239, 67, WTE)
+
+
+def tetris_start():
+    display_clear()
+    falling_piece = None
+    draw_brick_borders()
+    show_control_labels()
+    display.update()
+    while True:
+        if display.is_pressed(display.BUTTON_A) and display.is_pressed(display.BUTTON_B):
+            display_clear()
+            display_set_pen_color(WTE)
+            display.text("End", 10, 10, 240, 4)
+            display.update()
+        elif display.is_pressed(display.BUTTON_A):
+            # rotate
+            pass
+        elif display.is_pressed(display.BUTTON_B):
+            if falling_piece != None:
+                clear_piece(falling_piece)
+            falling_piece = FallingPiece()
+            print(falling_piece)
+        elif display.is_pressed(display.BUTTON_X):
+            if falling_piece != None:
+                move_falling_piece_right(falling_piece)
+        elif display.is_pressed(display.BUTTON_Y):
+            if falling_piece != None:
+                move_falling_piece_left(falling_piece)
+        if falling_piece != None:
+            if falling_piece.row+1 < 18:
+                clear_piece(falling_piece)
+                falling_piece.row += 1
+                draw_tetrominoe(falling_piece, falling_piece.color)
+                show_control_labels()
+                display.update()
+                print(falling_piece)
+        utime.sleep(.2)
