@@ -6,16 +6,9 @@ from tetris import *
 from water import *
 from screen import img_array
 
+
 def main():
     init_display()
-    # debug_turn_on_axis()
-    # debug_turn_on_diag()
-    # draw_pixel(0, 0, GRN) # A
-    # draw_pixel(0, 134, RED) # B
-    # draw_pixel(239, 134, YEL) # Y
-    # draw_pixel(239, 0, BLU) # X
-    # display.update()
-
     draw_text("Tetris", 6, 22, 239, 3, GRN)
     draw_text("Pong", 6, 102, 239, 3, WTE)
     draw_text("Water", 150, 22, 239, 3, BLU)

@@ -52,6 +52,11 @@ def draw_character(char, x, y, scale, rgb):
     display.character(char_a, x, y, scale)
 
 
+def draw_circle(x, y, r, rgb):
+    display_set_pen_color(rgb)
+    display.circle(x, y, r)
+
+
 def draw_image_from_array(img_array):
     display_clear()
     for x in range(len(img_array)):
@@ -123,3 +128,4 @@ def draw_ring_points(xc, yc, x, y):  # Draw 8 octants
 def draw_text(text, x, y, wrap=240, size=4, rgb=WTE):
     display_set_pen_color(rgb)
     display.text(text, x, y, wrap, size)
+
