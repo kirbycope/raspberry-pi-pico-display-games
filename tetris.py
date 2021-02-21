@@ -199,10 +199,7 @@ def tetris_start():
     display.update()
     while True:
         if display.is_pressed(display.BUTTON_A) and display.is_pressed(display.BUTTON_B):
-            display_clear()
-            display_set_pen_color(WTE)
-            display.text("End", 10, 10, 240, 4)
-            display.update()
+            break
         elif display.is_pressed(display.BUTTON_A):
             #rotate
             pass
@@ -210,7 +207,7 @@ def tetris_start():
             if falling_piece != None:
                 clear_piece(falling_piece)
             falling_piece = FallingPiece()
-            print(falling_piece)
+            #print(falling_piece) # DEBUGGING
         elif display.is_pressed(display.BUTTON_X):
             if falling_piece != None:
                 move_falling_piece_right(falling_piece)
@@ -224,5 +221,6 @@ def tetris_start():
                 draw_tetrominoe(falling_piece, falling_piece.color)
                 show_control_labels()
                 display.update()
-                print(falling_piece)
+                #print(falling_piece) # DEBUGGING
         utime.sleep(.2)
+

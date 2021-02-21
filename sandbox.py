@@ -24,21 +24,31 @@ def main():
     while True:
         if display.is_pressed(display.BUTTON_A):
             tetris_start()
+            display_clear()
+            display.update()
+            print("Tetris closed.")
             break
         elif display.is_pressed(display.BUTTON_B):
             pong_start()
-            print("Done")
+            display_clear()
+            display.update()
+            print("Pong closed.")
             break
         elif display.is_pressed(display.BUTTON_X):
             water_start()
-            print("Done")
+            display_clear()
+            display.update()
+            print("Water closed.")
             break
         elif display.is_pressed(display.BUTTON_Y):
             draw_image_from_array(img_array)
-            print("Done")
+            display_clear()
+            display.update()
+            print("Debug closed.")
             break
         utime.sleep(.1)
 
 
 if __name__ == "__main__":
     main()
+

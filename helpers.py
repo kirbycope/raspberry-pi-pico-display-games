@@ -20,6 +20,7 @@ def init_display():
 def clamp_column(value, min_value=1, max_value=10):
     return min(max_value, max(min_value, value))
 
+
 def clamp_row(value, min_value=1, max_value=18):
     return min(max_value, max(min_value, value))
 
