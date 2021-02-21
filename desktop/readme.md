@@ -16,3 +16,6 @@ img_array = [
     "2,3,255,255,255"
 ]
 ```
+
+### Loaded Image on Pico Display
+![Screenshot](/desktop/screen.jpg)
