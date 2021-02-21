@@ -20,10 +20,8 @@ def init_display():
 def clamp_column(value, min_value=1, max_value=10):
     return min(max_value, max(min_value, value))
 
-
 def clamp_row(value, min_value=1, max_value=18):
     return min(max_value, max(min_value, value))
-
 
 def debug_turn_on_axis():
     hH = int(display_height/2)
@@ -53,7 +51,17 @@ def draw_character(char, x, y, scale, rgb):
     display.character(char_a, x, y, scale)
 
 
-def draw_line(x, y, xx, yy, rgb):  # //instructables.com/Pimoroni-Pico-Display-Workout/
+def draw_image_from_array(img_array):
+    display_clear()
+    for x in range(len(img_array)):
+        pixel = img_array[x]
+        pixel_info = pixel.split(",")
+        rgb = (int(pixel_info[2]), int(pixel_info[3]), int(pixel_info[4]))
+        draw_pixel(int(pixel_info[1]), int(pixel_info[0]), rgb)
+    display.update()
+
+
+def draw_line(x, y, xx, yy, rgb): # //instructables.com/Pimoroni-Pico-Display-Workout/
     display_set_pen_color(rgb)
     if x > xx:
         t = x

@@ -15,9 +15,8 @@ class FallingPiece:
         self.shap_name = determine_tetrominoe_shape_name(self.shape)
         self.orientation = 1  # of 4
         self.color = determine_tetrominoe_color(self.shape)
-
     def __str__(self):
-        return str(self.__class__) + ": " + str(self.__dict__)
+       return str(self.__class__) + ": " + str(self.__dict__)
 
 
 def clear_piece(tetrominoe):
@@ -205,7 +204,7 @@ def tetris_start():
             display.text("End", 10, 10, 240, 4)
             display.update()
         elif display.is_pressed(display.BUTTON_A):
-            # rotate
+            #rotate
             pass
         elif display.is_pressed(display.BUTTON_B):
             if falling_piece != None:
