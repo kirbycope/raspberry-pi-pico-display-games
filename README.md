@@ -12,8 +12,8 @@ Press the button next to the text to play that app. To exit any game hold 🅐+�
 🅨 = Move piece left<br />
 
 ## Pong
-![Screenshot](/pong.png)
+![Screenshot](/pong.png)<br />
 First to 3 wins.
 
 ## Debug
-![Screenshot](/debug.png)
+![Screenshot](/debug.png)<br />
