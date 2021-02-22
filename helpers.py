@@ -129,3 +129,9 @@ def draw_text(text, x, y, wrap=240, size=4, rgb=WTE):
     display_set_pen_color(rgb)
     display.text(text, x, y, wrap, size)
 
+
+def press_any_key():
+    while True:
+         if display.is_pressed(display.BUTTON_A) or display.is_pressed(display.BUTTON_B) or display.is_pressed(display.BUTTON_X) or display.is_pressed(display.BUTTON_Y):
+            break
+

@@ -34,9 +34,10 @@ def main():
         elif display.is_pressed(display.BUTTON_Y):
             menu_displayed = False
             draw_image_from_array(img_array)
+            press_any_key()
             display_clear()
             display.update()
-        utime.sleep(.1)
+        utime.sleep(.2)
 
 
 def display_game_menu():

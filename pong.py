@@ -78,7 +78,17 @@ def pong_start():
             draw_circle(ball.x, ball.y, 4, BLK)
             ball = None
         show_scores(red_paddle.score, blue_paddle.score)
-        if red_paddle.score > 9 or blue_paddle.score > 9:
+        if red_paddle.score == 3:
+            display_clear()
+            draw_text("Red wins!", 6, 22, 239, 3, RED)
+            display.update()
+            press_any_key()
+            break
+        elif blue_paddle.score == 3:
+            display_clear()
+            draw_text("Blue wins!", 6, 22, 239, 3, BLU)
+            display.update()
+            press_any_key()
             break
         utime.sleep(.1)
 
