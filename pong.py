@@ -56,15 +56,13 @@ def pong_start():
         elif display.is_pressed(display.BUTTON_Y):
             move_left(blue_paddle)
         ball = move_ball(ball, red_paddle, blue_paddle)
-        #print("")
-        #print(red_paddle.x, red_paddle.y)
-        #print(ball.x, ball.y)
-        #print(blue_paddle.x, blue_paddle.y)
-        if ball.x < -3:
+        if ball.x < 50:
             blue_paddle.score = blue_paddle.score + 1
+            draw_circle(ball.x, ball.y, 4, BLK)
             ball = None
-        elif ball.x > 239:
+        elif ball.x > 190:
             red_paddle.score = red_paddle.score + 1
+            draw_circle(ball.x, ball.y, 4, BLK)
             ball = None
         show_scores(red_paddle.score, blue_paddle.score)
         if red_paddle.score > 9 or blue_paddle.score > 9:
@@ -73,6 +71,8 @@ def pong_start():
 
 
 def move_ball(ball, red_paddle, blue_paddle):
+    if ball.angle == None:
+        ball.angle = 0
     if ball.x > 171: # contact blue?
         # check collision
         right_edge = blue_paddle.y
@@ -83,6 +83,7 @@ def move_ball(ball, red_paddle, blue_paddle):
             pass
         else:
             ball.direction = 1
+            ball.angle = determine_angle(ball, blue_paddle)
     if ball.x < 77: # contact red?
         # check collision
         right_edge = red_paddle.y
@@ -93,15 +94,17 @@ def move_ball(ball, red_paddle, blue_paddle):
             pass
         else:
             ball.direction = 0
-    draw_circle(ball.x, ball.y, 4, BLK)
-    if ball.direction == 0:
-        ball.x = ball.x+6
-    else:
-        ball.x = ball.x-6
-    draw_circle(ball.x, ball.y, 4, WTE)
-    display.update()
+            ball.angle = determine_angle(ball, red_paddle)
+    draw_circle(ball.x, ball.y+ball.angle, 4, BLK)
+    if ball != None:
+        if ball.direction == 0:
+            ball.x = ball.x+6
+        else:
+            ball.x = ball.x-6
+        draw_circle(ball.x, ball.y, 4, WTE)
+        display.update()
     return ball
-
+    
 
 def move_left(paddle):
     if (paddle.y+5) < 98:
