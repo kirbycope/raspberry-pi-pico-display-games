@@ -21,6 +21,19 @@ class Paddle:
     def __str__(self):
        return str(self.__class__) + ": " + str(self.__dict__)
 
+
+def determine_angle(ball, paddle):
+    diff = (ball.y+2)/(paddle.y+20)
+    if diff == 1:
+        return 0
+    elif diff < 1.1:
+        return 2
+    elif diff < 1:
+        return 1
+    elif diff > 1:
+        return -1
+
+
 def pong_start():
     display_clear()
     blue_paddle = Paddle(180, 48, BLU)
@@ -73,8 +86,7 @@ def pong_start():
 def move_ball(ball, red_paddle, blue_paddle):
     if ball.angle == None:
         ball.angle = 0
-    if ball.x > 171: # contact blue?
-        # check collision
+    if ball.x > 171:
         right_edge = blue_paddle.y
         left_edge = right_edge + 40
         if ball.y + 2 > left_edge:
@@ -83,9 +95,8 @@ def move_ball(ball, red_paddle, blue_paddle):
             pass
         else:
             ball.direction = 1
-            ball.angle = determine_angle(ball, blue_paddle)
+            ball.angle = determine_angle(ball, blue_paddle) * -1
     if ball.x < 77: # contact red?
-        # check collision
         right_edge = red_paddle.y
         left_edge = right_edge + 40
         if ball.y + 2 > left_edge:
@@ -94,17 +105,20 @@ def move_ball(ball, red_paddle, blue_paddle):
             pass
         else:
             ball.direction = 0
-            ball.angle = determine_angle(ball, red_paddle)
-    draw_circle(ball.x, ball.y+ball.angle, 4, BLK)
+            ball.angle = determine_angle(ball, red_paddle) * -1
+    draw_circle(ball.x, ball.y, 4, BLK)
     if ball != None:
+        if ball.y < 2 or ball.y > 137:
+            ball.angle = ball.angle * -1
         if ball.direction == 0:
             ball.x = ball.x+6
         else:
             ball.x = ball.x-6
+        ball.y = ball.y+ball.angle
         draw_circle(ball.x, ball.y, 4, WTE)
         display.update()
     return ball
-    
+
 
 def move_left(paddle):
     if (paddle.y+5) < 98:
