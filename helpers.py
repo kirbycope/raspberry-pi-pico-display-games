@@ -24,6 +24,7 @@ def clamp_column(value, min_value=1, max_value=10):
 def clamp_row(value, min_value=1, max_value=18):
     return min(max_value, max(min_value, value))
 
+
 def debug_turn_on_axis():
     hH = int(display_height/2)
     hW = int(display_width/2)
@@ -67,7 +68,7 @@ def draw_image_from_array(img_array):
     display.update()
 
 
-def draw_line(x, y, xx, yy, rgb): # //instructables.com/Pimoroni-Pico-Display-Workout/
+def draw_line(x, y, xx, yy, rgb):  # //instructables.com/Pimoroni-Pico-Display-Workout/
     display_set_pen_color(rgb)
     if x > xx:
         t = x
@@ -132,6 +133,5 @@ def draw_text(text, x, y, wrap=240, size=4, rgb=WTE):
 
 def press_any_key():
     while True:
-         if display.is_pressed(display.BUTTON_A) or display.is_pressed(display.BUTTON_B) or display.is_pressed(display.BUTTON_X) or display.is_pressed(display.BUTTON_Y):
+        if display.is_pressed(display.BUTTON_A) or display.is_pressed(display.BUTTON_B) or display.is_pressed(display.BUTTON_X) or display.is_pressed(display.BUTTON_Y):
             break
-

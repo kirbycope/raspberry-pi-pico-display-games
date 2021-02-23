@@ -8,8 +8,9 @@ class Ball:
         self.y = y
         self.direction = 0
         self.angle = 0
+
     def __str__(self):
-       return str(self.__class__) + ": " + str(self.__dict__)
+        return str(self.__class__) + ": " + str(self.__dict__)
 
 
 class Paddle:
@@ -18,8 +19,9 @@ class Paddle:
         self.y = y
         self.color = color
         self.score = 0
+
     def __str__(self):
-       return str(self.__class__) + ": " + str(self.__dict__)
+        return str(self.__class__) + ": " + str(self.__dict__)
 
 
 def determine_angle(ball, paddle):
@@ -106,7 +108,7 @@ def move_ball(ball, red_paddle, blue_paddle):
         else:
             ball.direction = 1
             ball.angle = determine_angle(ball, blue_paddle) * -1
-    if ball.x < 77: # contact red?
+    if ball.x < 77:  # contact red?
         right_edge = red_paddle.y
         left_edge = right_edge + 40
         if ball.y + 2 > left_edge:
@@ -155,4 +157,3 @@ def show_scores(red_score, blue_score):
     draw_rectangle(230, 0, 10, 10, BLK)
     b = ""+str(blue_score)
     draw_text(b, 230, 0, 239, 2, BLU)
- 
