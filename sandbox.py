@@ -6,6 +6,7 @@ from tetris import *
 from water import *
 from screen import img_array
 
+
 class Selector:
     def __init__(self, y=10, value=0, page=0):
         self.y = y
@@ -16,21 +17,40 @@ class Selector:
 
 
 def main():
-    game_list = ["Etch", "Image", "Pong", "Snake", "Tetris", "Water"]
+    game_list = ["Image", "Pong", "Sketch", "Snake", "Tetris", "Water"]
     menu_displayed = False
     selector = None
     init_display()
     while True:
         if menu_displayed == False:
-            selector = display_game_menu(game_list)
+            selector = Selector()
+            selector = display_game_menu(selector, game_list)
             menu_displayed = True
             display.update()
         if display.is_pressed(display.BUTTON_A):
+            if selector.value == 0 and selector.page != 0 and len(game_list) > 6:
+                display_selector(selector, BLK)
+                selector.page-=1
+                selector.value = 6
+                selector.y = 130
+                selector = display_game_menu(selector, game_list)
+                display_selector(selector)
             selector = move_selector_up(selector)
             display.update()
         elif display.is_pressed(display.BUTTON_B):
-            selector = move_selector_down(selector)
+            if selector.value == 5 and selector.page == 0 and len(game_list) > 6:
+                display_selector(selector, BLK)
+                selector.page+=1
+                selector.value = 0
+                selector.y = 10
+                selector = display_game_menu(selector, game_list)
+                display_selector(selector)
+            else:
+                selector = move_selector_down(selector)
             display.update()
+        elif display.is_pressed(display.BUTTON_X):
+            #break
+            pass
         elif display.is_pressed(display.BUTTON_Y):
             if game_list[selector.value] == "Image":
                 menu_displayed = False
@@ -50,9 +70,8 @@ def main():
                 display.update()
         utime.sleep(.1)
 
-def display_game_menu(game_list, page=0):
+def display_game_menu(selector, game_list):
     display_clear()
-    selector = Selector()
     display_selector(selector)
     draw_rectangle(0, 0, 13, 67, GRN)
     draw_pixel(6, 32, BLK)
@@ -76,17 +95,16 @@ def display_game_menu(game_list, page=0):
     draw_line(234, 98, 234, 104, BLK)
     for i in range(6):
         if 0 <= i < len(game_list):
-            if selector.page != 0:
-                j = i+(i*5)
+            j = i+(6*selector.page)
+            if j < len(game_list):
                 draw_text(game_list[j], 26, i*20, 239, 3, WTE)
-            else:
-                draw_text(game_list[i], 26, i*20, 239, 3, WTE)
-    if len(game_list) > 6:
-        draw_text("...", 26, 110, 239, 3, WTE)
+            if len(game_list) > 6 and selector.page == 0:
+                draw_text("...", 26, 110, 239, 3, WTE)
     return selector
 
 
-def display_selector(selector, rgb = BLU):
+def display_selector(selector, rgb = WTE):
+    #draw_rectangle(20, selector.y-10, 110, 20, WTE)
     draw_line(130, selector.y, 150, selector.y, rgb)
 
 
@@ -110,4 +128,5 @@ def move_selector_up(selector):
 
 if __name__ == "__main__":
     main()
+
 
