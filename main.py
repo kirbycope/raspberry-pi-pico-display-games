@@ -18,7 +18,7 @@ class Selector:
 
 
 def main():
-    game_list = ["Image", "Pong", "Sketch", "Snake", "Tetris", "Water"]
+    game_list = ["a","Image", "Pong", "Sketch", "Snake", "Tetris", "Water","z"]
     menu_displayed = False
     selector = None
     init_display()
@@ -31,15 +31,27 @@ def main():
             menu_displayed = True
             display.update()
         if display.is_pressed(display.BUTTON_A):
-            if selector.value > 0:
-                selector.value -= 1
-                selector.y -= 20
+            select_index = selector.value + (6*selector.page)
+            if select_index - 1 >= 0:
+                if selector.value > 0:
+                    selector.value -= 1
+                    selector.y -= 20
+                elif selector.value == 0 and selector.page > 0:
+                    selector.page -= 1
+                    selector.value = 5
+                    selector.y = 110
                 selector = display_game_menu(selector, game_list)
                 display.update()
         elif display.is_pressed(display.BUTTON_B):
-            if selector.value < 5:
-                selector.value += 1
-                selector.y += 20
+            select_index = selector.value + (6*selector.page)
+            if  select_index + 1 < len(game_list):
+                if selector.value < 5:
+                    selector.value += 1
+                    selector.y += 20
+                elif selector.value == 5 and len(game_list) > 6:
+                    selector.page += 1
+                    selector.value = 0
+                    selector.y = 10
                 selector = display_game_menu(selector, game_list)
                 display.update()
         elif display.is_pressed(display.BUTTON_X):
@@ -74,7 +86,7 @@ def display_game_menu(selector, game_list):
         if 0 <= i < len(game_list):
             j = i+(6*selector.page) # this handles "paging"
             if j < len(game_list): # is something at the current index?
-                if j == selector.value: # is the index the same as the selector?
+                if i == selector.value: # is the index the same as the selector?
                     draw_rectangle(14, selector.y-10, 211, 20, WTE) # white background
                     draw_text(game_list[j], 26, i*20, 239, 3, BLK) # black text
                 else:
