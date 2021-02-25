@@ -7,13 +7,13 @@ Press the button next to the text to play that app. To exit any game hold 🅐+�
 ## Image Viewer
 ![Screenshot](/debug.png)<br />
 
+## Pong
+![Screenshot](/pong.png)<br />
+First to 3 wins.
+
 ## Tetris
 ![Screenshot](/tetris.png)<br />
 🅐 = Rotate falling piece<br />
 🅑 = Drop falling piece<br />
 🅧 = Move piece right<br />
 🅨 = Move piece left<br />
-
-## Pong
-![Screenshot](/pong.png)<br />
-First to 3 wins.
