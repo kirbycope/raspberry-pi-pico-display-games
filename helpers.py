@@ -58,13 +58,12 @@ def draw_circle(x, y, r, rgb):
     display.circle(x, y, r)
 
 
-def draw_image_from_array(img_array):
-    display_clear()
+def draw_image_from_array(img_array, shift_x = 0, shift_y = 0):
     for x in range(len(img_array)):
         pixel = img_array[x]
         pixel_info = pixel.split(",")
         rgb = (int(pixel_info[2]), int(pixel_info[3]), int(pixel_info[4]))
-        draw_pixel(int(pixel_info[1]), int(pixel_info[0]), rgb)
+        draw_pixel(int(pixel_info[1]) + shift_x, int(pixel_info[0]) + shift_y, rgb)
     display.update()
 
 

@@ -17,7 +17,7 @@ def get_repeating_pattern(s):  # https://stackoverflow.com/a/29489919/1106708
     return s if i == -1 else s[:i]
 
 
-image_file_name = "screen.bmp"
+image_file_name = "doom_guy.bmp"
 py_file_name = image_file_name.split(".")[0]
 im = Image.open(image_file_name)
 im_mirror = ImageOps.mirror(im)
@@ -26,7 +26,7 @@ h = im.size[0]
 w = im.size[1]
 with open(py_file_name + ".py", 'a') as the_file:
     the_file.truncate(0)
-    the_file.write("img_hex_array = [")
+    the_file.write("img_array = [")
     for x in range(h):
         for y in range(w):
             rgb = pix[x, y]

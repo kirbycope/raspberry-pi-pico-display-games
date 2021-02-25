@@ -3,11 +3,11 @@ import gc
 import random
 import machine
 from helpers import *
+from doom import *
+from screen import img_array
 from pong import *
 from tetris import *
 from water import *
-from screen import img_array
-
 
 class Selector:
     def __init__(self, y=10, value=0, page=0):
@@ -19,8 +19,8 @@ class Selector:
 
 
 def main():
-    game_ideas = ["Etch A Sketch", "Frogger", "Image Viewer", "Pong", "Snake", "Space Inv", "Tetris", "Water Game"]
-    game_list = ["Image Viewer", "Pong", "Tetris"]
+    #game_list = ["Etch A Sketch", "Frogger", "Image Viewer", "Pong", "Snake", "Space Inv", "Tetris", "Water Game"]
+    game_list = ["Doom", "Image Viewer", "Pong", "Tetris"]
     menu_displayed = False
     selector = None
     init_display()
@@ -59,8 +59,15 @@ def main():
         elif display.is_pressed(display.BUTTON_X):
             machine.reset()
         elif display.is_pressed(display.BUTTON_Y):
-            if game_list[selector.value] == "Image Viewer":
+            if game_list[selector.value] == "Doom":
                 menu_displayed = False
+                doom_start()
+                display_clear()
+                display.update()
+                gc.collect()
+            elif game_list[selector.value] == "Image Viewer":
+                menu_displayed = False
+                display_clear()
                 draw_image_from_array(img_array)
                 press_any_key()
                 display_clear()
@@ -127,5 +134,4 @@ def draw_button_controlls():
 
 if __name__ == "__main__":
     main()
-
 
