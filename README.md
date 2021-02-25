@@ -1,8 +1,11 @@
 # raspberry-pi-pico-display-games
 
 ## App Menu
-![Screenshot](/game_menu.png)<br/>
+![Screenshot](/game_menu.jpg)<br/>
 Press the button next to the text to play that app. To exit any game hold 🅐+🅑 for a moment.
+
+## Image Viewer
+![Screenshot](/debug.png)<br />
 
 ## Tetris
 ![Screenshot](/tetris.png)<br />
@@ -14,6 +17,3 @@ Press the button next to the text to play that app. To exit any game hold 🅐+�
 ## Pong
 ![Screenshot](/pong.png)<br />
 First to 3 wins.
-
-## Debug
-![Screenshot](/debug.png)<br />
