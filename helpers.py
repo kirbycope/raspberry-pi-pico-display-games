@@ -50,7 +50,7 @@ def display_set_pen_color(rgb):
 
 def draw_character(char, x, y, scale, rgb):
     display_set_pen_color(rgb)
-    display.character(char_a, x, y, scale)
+    display.character(char, x, y, scale)
 
 
 def draw_circle(x, y, r, rgb):
@@ -91,6 +91,11 @@ def draw_line(x, y, xx, yy, rgb):  # //instructables.com/Pimoroni-Pico-Display-W
 def draw_pixel(x, y, rgb):
     display_set_pen_color(rgb)
     display.pixel(x, y)
+
+
+def draw_pixel_span(x, y, l, rgb):
+    display_set_pen_color(rgb)
+    display.pixel_span(x, y, l)
 
 
 def draw_rectangle(x, y, w, h, rgb):
