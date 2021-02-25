@@ -1,6 +1,7 @@
 import picodisplay as display
 import gc
 import random
+import machine
 from helpers import *
 from pong import *
 from tetris import *
@@ -18,7 +19,8 @@ class Selector:
 
 
 def main():
-    game_list = ["a","Image", "Pong", "Sketch", "Snake", "Tetris", "Water","z"]
+    game_ideas = ["Etch A Sketch", "Frogger", "Image Viewer", "Pong", "Snake", "Space Inv", "Tetris", "Water Game"]
+    game_list = ["Image Viewer", "Pong", "Tetris"]
     menu_displayed = False
     selector = None
     init_display()
@@ -55,10 +57,9 @@ def main():
                 selector = display_game_menu(selector, game_list)
                 display.update()
         elif display.is_pressed(display.BUTTON_X):
-            #break
-            pass
+            machine.reset()
         elif display.is_pressed(display.BUTTON_Y):
-            if game_list[selector.value] == "Image":
+            if game_list[selector.value] == "Image Viewer":
                 menu_displayed = False
                 draw_image_from_array(img_array)
                 press_any_key()
