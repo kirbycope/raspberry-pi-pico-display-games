@@ -17,7 +17,7 @@ def get_repeating_pattern(s):  # https://stackoverflow.com/a/29489919/1106708
     return s if i == -1 else s[:i]
 
 
-image_file_name = "doom_guy.bmp"
+image_file_name = "doom_shotgun.bmp"
 py_file_name = image_file_name.split(".")[0]
 im = Image.open(image_file_name)
 im_mirror = ImageOps.mirror(im)

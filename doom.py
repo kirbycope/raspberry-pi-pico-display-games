@@ -1,6 +1,7 @@
 from helpers import *
 import utime
 from doom_guy import img_array
+#from doom_shotgun import img_array as img_shotgun
 
 def doom_start():
     display_clear()
