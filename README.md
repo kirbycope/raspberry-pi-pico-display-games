@@ -12,7 +12,7 @@ the repository) is the original, and is described at the end of this page.
 
 ![Pico Display Games](preview.png)
 
-**[Play it in your browser](https://kirbycope.github.io/raspberry-pi-pico-display-games/)**: the same C code, compiled to
+**[Play it in your browser](https://timothycope.com/raspberry-pi-pico-display-games/)**: the same C code, compiled to
 WebAssembly, on a drawn Display Pack you can click, tap or play with the A, B, X and Y keys.
 
 | App | What it is |
