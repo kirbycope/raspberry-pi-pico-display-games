@@ -163,6 +163,13 @@ EMSCRIPTEN_KEEPALIVE void web_button(int mask, int down) {
     if (down) keys_down |= (uint8_t)mask, keys_latched |= (uint8_t)mask;
     else keys_down &= (uint8_t)~mask;
 }
+
+// The page's Home button: back to the menu from any app, like "menu" on the
+// USB remote.
+EMSCRIPTEN_KEEPALIVE void web_home(void) {
+    snprintf(pending, sizeof pending, "menu");
+    has_pending = true;
+}
 #endif
 
 static void window_resize(void) {

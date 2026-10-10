@@ -74,6 +74,14 @@
   .board:not(.portrait) .led { right: calc(var(--s) * 26); top: calc(50% - var(--s) * 3); }
   .portrait .led { bottom: calc(var(--s) * 26); left: calc(50% - var(--s) * 3); }
 
+  .home {
+    margin-top: 18px; font-family: "Kenney Mini", monospace; font-size: 16px; color: var(--text);
+    background: #2a2640; border: 2px solid var(--accent); border-radius: 22px; padding: 10px 26px;
+    cursor: pointer; touch-action: manipulation;
+  }
+  .home:hover { background: #3a3460; }
+  .home:active { transform: translateY(1px); }
+  .home kbd { color: var(--muted); font-family: inherit; font-size: 13px; margin-left: 6px; }
   .help { max-width: 640px; color: var(--muted); font-size: 14px; line-height: 1.7; margin-top: 22px; text-align: center; }
   .help b { color: var(--text); font-weight: normal; }
   .help a { color: var(--accent); }
@@ -95,9 +103,11 @@
     <div id="status">Loading...</div>
   </div>
 
+  <button class="home" id="home">Home <kbd>Esc</kbd></button>
+
   <p class="help">
     Press the buttons on the board, or the <b>A</b>, <b>B</b>, <b>X</b> and <b>Y</b> keys.<br>
-    In the menu A and B move and Y opens an app. <b>Hold A and B for a second</b> to go back.<br>
+    In the menu A and B move and Y opens an app. <b>Home</b> (or Esc) goes back to the menu.<br>
     Leave the menu alone for 30 seconds and the games play themselves.<br>
     The same C code runs on the real thing: a Pico and a Pimoroni Pico Display Pack.<br>
     <a href="https://github.com/kirbycope/raspberry-pi-pico-display-games">Source on GitHub</a>
@@ -126,6 +136,11 @@
     for (const t of ["pointerup", "pointercancel", "lostpointercapture"])
       b.addEventListener(t, () => press(mask, false));
   }
+  // Home: back to the menu from any app.
+  const home = () => { if (Module._web_home) Module._web_home(); };
+  document.getElementById("home").addEventListener("click", home);
+  addEventListener("keydown", e => { if (e.key === "Escape") home(); });
+
   // SDL reads the keys itself; this only shows them going down on the board.
   addEventListener("keydown", e => { const m = byKey[e.key.toLowerCase()]; if (m) buttons.forEach(b => +b.dataset.mask === m && b.classList.add("down")); });
   addEventListener("keyup", e => { const m = byKey[e.key.toLowerCase()]; if (m) buttons.forEach(b => +b.dataset.mask === m && b.classList.remove("down")); });
