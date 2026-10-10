@@ -1,0 +1,19 @@
+// Generated into the build directory by CMake. Links the encoded Bad Apple
+// frames into flash as bad_apple_data .. bad_apple_data_end.
+#if defined(__APPLE__)
+    .section __TEXT,__const
+    .globl _bad_apple_data
+    .globl _bad_apple_data_end
+    .p2align 2
+_bad_apple_data:
+    @BAD_APPLE_INCBIN@
+_bad_apple_data_end:
+#else
+    .section .rodata.bad_apple,"a"
+    .global bad_apple_data
+    .global bad_apple_data_end
+    .balign 4
+bad_apple_data:
+    @BAD_APPLE_INCBIN@
+bad_apple_data_end:
+#endif

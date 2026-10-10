@@ -1,0 +1,28 @@
+# Paused at the start, running, the end of a focus, a short break, a long break, back to work.
+wait 500
+shot shots/pomodoro_1.bmp
+tap A
+wait 437000
+shot shots/pomodoro_2.bmp
+wait 1100000
+shot shots/pomodoro_3.bmp
+tap A
+wait 62000
+shot shots/pomodoro_4.bmp
+tap X
+wait 100
+tap X
+wait 100
+tap X
+wait 100
+tap X
+wait 100
+tap X
+wait 100
+tap X
+wait 100
+wait 200000
+shot shots/pomodoro_5.bmp
+wait 800000
+shot shots/pomodoro_6.bmp
+quit

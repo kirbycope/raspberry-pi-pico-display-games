@@ -1,0 +1,15 @@
+# From c/: PDG_APP="Pico Quest" PDG_SCRIPT=shots/rpg.txt PDG_SHOT_SCALE=3 PDG_SEED=7 ./build-host-rpg/pdg_sim
+wait 1500
+shot shots/rpg_title.bmp
+tap A
+wait 1000
+shot shots/rpg_camp.bmp
+tap A
+wait 1800
+shot shots/rpg_battle.bmp
+tap A
+wait 240
+shot shots/rpg_attack.bmp
+wait 1400
+shot shots/rpg_hit.bmp
+quit

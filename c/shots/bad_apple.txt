@@ -1,0 +1,14 @@
+wait 1000
+shot shots/bad_apple_1.bmp
+wait 31000
+shot shots/bad_apple_2.bmp
+wait 26000
+tap A
+wait 300
+shot shots/bad_apple_3_paused.bmp
+tap A
+wait 30000
+tap Y
+wait 40000
+shot shots/bad_apple_4_inverted.bmp
+quit

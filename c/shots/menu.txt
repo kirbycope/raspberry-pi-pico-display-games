@@ -1,0 +1,6 @@
+wait 200
+shot shots/menu.bmp
+tap B
+tap B
+wait 100
+shot shots/menu2.bmp
