@@ -1,0 +1,29 @@
+# Soup with the help overlay, soup later, the glider gun, pulsars, acorn, the fleet paused, diehard dying out.
+wait 1500
+shot shots/life_1.bmp
+wait 8000
+shot shots/life_2.bmp
+tap Y
+wait 12000
+shot shots/life_3.bmp
+tap Y
+wait 1200
+shot shots/life_4.bmp
+tap Y
+wait 100
+tap Y
+wait 16000
+shot shots/life_5.bmp
+tap Y
+wait 3000
+tap A
+wait 300
+shot shots/life_6.bmp
+tap Y
+wait 100
+tap A
+wait 13800
+shot shots/life_7.bmp
+wait 4000
+shot shots/life_8.bmp
+quit

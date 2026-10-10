@@ -1,0 +1,213 @@
+# Made by shots/tetris_flappy_bot.c. Replay from c/: PDG_APP="Flappy Bird" PDG_SCRIPT=shots/flappy.txt PDG_SHOT_SCALE=3 PDG_SEED=7 ./build-host-tf/pdg_sim
+wait 656
+shot shots/flappy_title.bmp
+wait 160
+tap A 16
+wait 560
+tap A 16
+wait 544
+tap A 16
+wait 544
+tap A 16
+wait 528
+tap A 16
+wait 688
+tap A 16
+wait 544
+tap A 16
+wait 352
+tap A 16
+wait 544
+tap A 16
+wait 544
+tap A 16
+wait 656
+tap A 16
+wait 528
+tap A 16
+wait 560
+tap A 16
+wait 544
+tap A 16
+wait 608
+tap A 16
+wait 528
+tap A 16
+wait 384
+tap A 16
+wait 432
+shot shots/flappy_play.bmp
+wait 64
+tap A 16
+wait 544
+tap A 16
+wait 192
+tap A 16
+wait 192
+tap A 16
+wait 480
+tap A 16
+wait 752
+tap A 16
+wait 544
+tap A 16
+wait 432
+tap A 16
+wait 512
+tap A 16
+wait 544
+tap A 16
+wait 608
+tap A 16
+wait 544
+tap A 16
+wait 224
+tap A 16
+wait 512
+tap A 16
+wait 544
+tap A 16
+wait 640
+tap A 16
+wait 544
+tap A 16
+wait 800
+tap A 16
+wait 528
+tap A 16
+wait 528
+tap A 16
+wait 544
+tap A 16
+wait 256
+tap A 16
+wait 432
+tap A 16
+wait 544
+tap A 16
+wait 224
+tap A 16
+wait 416
+tap A 16
+wait 544
+tap A 16
+wait 416
+tap A 16
+wait 544
+tap A 16
+wait 832
+tap A 16
+wait 528
+tap A 16
+wait 640
+tap A 16
+wait 528
+tap A 16
+wait 528
+tap A 16
+wait 544
+tap A 16
+wait 544
+tap A 16
+wait 416
+tap A 16
+wait 544
+tap A 16
+wait 704
+tap A 16
+wait 544
+tap A 16
+shot shots/flappy_play2.bmp
+wait 624
+tap A 16
+wait 528
+tap A 16
+wait 368
+tap A 16
+wait 496
+tap A 16
+wait 544
+tap A 16
+wait 640
+tap A 16
+wait 528
+tap A 16
+wait 224
+tap A 16
+wait 432
+tap A 16
+wait 544
+tap A 16
+wait 576
+tap A 16
+wait 528
+tap A 16
+wait 672
+tap A 16
+wait 528
+tap A 16
+wait 560
+tap A 16
+wait 528
+tap A 16
+wait 528
+tap A 16
+wait 192
+tap A 16
+wait 192
+tap A 16
+wait 464
+tap A 16
+wait 800
+tap A 16
+wait 528
+tap A 16
+wait 224
+tap A 16
+wait 544
+tap A 16
+wait 544
+tap A 16
+wait 192
+tap A 16
+wait 192
+tap A 16
+wait 512
+tap A 16
+wait 656
+tap A 16
+wait 528
+tap A 16
+wait 768
+tap A 16
+wait 528
+tap A 16
+wait 528
+tap A 16
+wait 528
+tap A 16
+wait 544
+tap A 16
+wait 192
+tap A 16
+wait 496
+tap A 16
+wait 672
+tap A 16
+wait 528
+tap A 16
+wait 544
+tap A 16
+wait 480
+tap A 16
+wait 544
+tap A 16
+wait 192
+tap A 16
+wait 192
+tap A 16
+wait 448
+tap A 16
+wait 2272
+shot shots/flappy_over.bmp
+quit

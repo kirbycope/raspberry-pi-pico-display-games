@@ -1,0 +1,26 @@
+wait 3000
+shot shots/pet_egg.bmp
+tap A
+wait 300
+shot shots/pet_egg_stats.bmp
+tap A
+wait 112000
+shot shots/pet_cracking.bmp
+wait 6150
+shot shots/pet_hatch.bmp
+wait 2000
+shot shots/pet_baby.bmp
+tap X
+wait 500
+shot shots/pet_feed.bmp
+wait 3000
+tap Y
+wait 50
+tap X
+wait 700
+shot shots/pet_play.bmp
+wait 3000
+tap A
+wait 300
+shot shots/pet_baby_stats.bmp
+quit
