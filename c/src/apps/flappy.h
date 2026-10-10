@@ -49,3 +49,22 @@ bool flappy_hits_pipe(const flappy_t *f);
 bool flappy_hits_ground(const flappy_t *f);
 // 0 none, 1 bronze (10), 2 silver (20), 3 gold (40).
 int flappy_medal(uint32_t score);
+
+// The attract-mode player: true when the bird should flap now. It hovers in
+// the lower half of the next gap, `aim` pixels lower still (negative is
+// higher), flapping whenever it has sunk below that and is not already
+// climbing, which is how a person plays too. With look_ahead it also tries
+// the next 1.2 seconds of flaps and glides, and overrules a choice that
+// leaves no way through the coming pipes; without, it misjudges big changes
+// of height now and then.
+bool flappy_should_flap(const flappy_t *f, int aim, bool look_ahead);
+
+// What attract mode has played since it last opened Flappy Bird, for tests
+// and tuning.
+typedef struct {
+    uint32_t games;  // runs that ended
+    uint32_t pipes;  // pipes passed in all of them
+    uint32_t best;   // most pipes in one run
+    uint32_t fewest; // fewest pipes in a finished run
+} flappy_attract_stats_t;
+const flappy_attract_stats_t *flappy_attract_stats(void);

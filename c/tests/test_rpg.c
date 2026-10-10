@@ -2,6 +2,8 @@
 #include <string.h>
 
 #include "apps/rpg.h"
+#include "core/app.h"
+#include "core/hal.h"
 #include "core/save.h"
 #include "test.h"
 
@@ -244,4 +246,118 @@ TEST(rpg_shop_and_rest_spend_gold) {
     CHECK(rpg_rest(&h));
     CHECK_EQ(h.hp, rpg_max_hp(h.level));
     CHECK_EQ(h.gold, before - (uint32_t)rpg_rest_price(&h));
+}
+
+// ---- attract mode ----
+
+TEST(rpg_attract_demo_heroes_win_their_boss_fights) {
+    // The demo's own choices, played as rules only, over many seeds: the boss
+    // always falls, in a few rounds rather than at a stroke, and the hero
+    // levels up.
+    for (int which = 0; which < RPG_DEMOS; which++)
+        for (uint32_t s = 1; s <= 200; s++) {
+            rpg_hero_t h;
+            rpg_battle_t b;
+            rpg_events_t ev;
+            rpg_demo_t d = {0};
+            use_seed(s * 7919u);
+            rpg_demo_hero(&h, which);
+            CHECK(rpg_save_valid(&h));
+            int level = h.level;
+            bool magic = false;
+            rpg_battle_start(&b, &h, rpg_pick_monster(&h, fixed_random()));
+            CHECK(rpg_monsters[b.monster].boss);
+            while (b.state == RPG_ONGOING && d.round < 20) {
+                int arg, cmd = rpg_demo_command(&b, &h, &d, &arg);
+                if (cmd == RPG_CMD_MAGIC && arg != RPG_SPELL_HEAL) magic = true;
+                CHECK(rpg_battle_turn(&b, &h, cmd, arg, &ev)); // never a refused command
+            }
+            CHECK_EQ(b.state, RPG_WON);
+            CHECK(d.round >= 2 && d.round <= 10);
+            CHECK(magic);
+            CHECK_EQ(h.level, level + 1);
+        }
+    rpg_set_random(NULL);
+}
+
+// Runs Pico Quest in attract mode the way main.c does: autopilot's held
+// buttons turned into pressed and released edges, fed to frame().
+typedef struct {
+    int wins, losses, level_ups;
+    bool a_with_b;
+} attract_tally_t;
+
+static attract_tally_t attract_run(uint32_t ms) {
+    attract_tally_t t = {0};
+    uint8_t prev = 0;
+    const rpg_hero_t *h = rpg_current_hero();
+    uint32_t last_wins = h->wins, last_defeats = h->defeats, last_level = h->level;
+    for (uint32_t elapsed = 0; elapsed < ms; elapsed += 33) {
+        uint8_t held = app_rpg.autopilot(33);
+        if ((held & (BTN_A | BTN_B)) == (BTN_A | BTN_B)) t.a_with_b = true;
+        input_t in = {held, (uint8_t)(held & ~prev), (uint8_t)(prev & ~held)};
+        prev = held;
+        CHECK(app_rpg.frame(&in, 33));
+        // A new demo hero jumps these about; only a step of one is a battle.
+        if (h->wins == last_wins + 1) t.wins++;
+        if (h->defeats == last_defeats + 1) t.losses++;
+        if (h->level == last_level + 1) t.level_ups++;
+        last_wins = h->wins, last_defeats = h->defeats, last_level = h->level;
+    }
+    return t;
+}
+
+TEST(rpg_attract_autopilot_wins_and_never_presses_a_with_b) {
+    gfx_set_orientation(app_rpg.orient);
+    CHECK(app_rpg.attract != NULL && app_rpg.autopilot != NULL);
+    for (uint32_t s = 1; s <= 6; s++) {
+        // Each turn plays the next demo, so both are covered three times.
+        app_rpg.enter();
+        app_rpg.attract();
+        use_seed(s * 104729u);
+        attract_tally_t t = attract_run(30000);
+        CHECK(t.wins >= 1);
+        CHECK_EQ(t.losses, 0);
+        CHECK(t.level_ups >= 1);
+        CHECK(!t.a_with_b);
+        app_rpg.leave();
+    }
+    rpg_set_random(NULL);
+}
+
+TEST(rpg_attract_leaves_the_real_save_and_hero_alone) {
+    gfx_set_orientation(app_rpg.orient);
+    save_t real_save = g_save;
+    rpg_hero_t real;
+    rpg_new_game(&real);
+    real.level = 3, real.zone = 1, real.battle = 4, real.gold = 77, real.potions = 1;
+    memset(g_save.rpg, 0, sizeof g_save.rpg);
+    memcpy(g_save.rpg, &real, sizeof real);
+    uint8_t before[SAVE_RPG_BYTES];
+    memcpy(before, g_save.rpg, sizeof before);
+
+    // An attract turn long enough to win, camp and fight again.
+    app_rpg.enter();
+    app_rpg.attract();
+    CHECK(rpg_current_hero()->level != real.level);
+    CHECK(attract_run(40000).wins >= 1);
+    app_rpg.leave();
+    // The demo wrote nothing, even before main.c puts the save back.
+    CHECK(memcmp(g_save.rpg, before, sizeof before) == 0);
+
+    // Opening the game normally afterwards brings back the player's hero.
+    app_rpg.enter();
+    CHECK(memcmp(rpg_current_hero(), &real, sizeof real) == 0);
+    input_t none = {0, 0, 0}, a = {BTN_A, BTN_A, 0};
+    CHECK(app_rpg.frame(&none, 33));
+    CHECK(app_rpg.frame(&a, 33)); // Continue
+    for (int i = 0; i < 10; i++) CHECK(app_rpg.frame(&none, 33));
+    app_rpg.leave();
+    rpg_hero_t back;
+    memcpy(&back, g_save.rpg, sizeof back);
+    CHECK_EQ(back.level, 3);
+    CHECK_EQ(back.zone, 1);
+    CHECK_EQ(back.battle, 4);
+    CHECK_EQ(back.gold, 77);
+    g_save = real_save;
 }

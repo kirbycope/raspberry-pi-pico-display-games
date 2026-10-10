@@ -373,6 +373,31 @@ static bool life_frame(const input_t *in, uint32_t dt) {
     return true;
 }
 
+// Attract mode: a fresh soup at 20 generations a second, without the help
+// line, then the next patterns (the glider gun, the pulsars) every 5 seconds.
+static uint32_t demo_ms;
+static int real_speed;
+
+static void life_attract(void) {
+    real_speed = speed;
+    help = false;
+    speed = 2;
+    load_pattern(0);
+    demo_ms = 0;
+}
+
+static uint8_t life_autopilot(uint32_t dt) {
+    uint32_t before = demo_ms;
+    demo_ms += dt;
+    // Hold Y for one frame each time a 5 second mark goes by.
+    return before / 5000 != demo_ms / 5000 ? BTN_Y : 0;
+}
+
+// The demo's speed is not the player's.
+static void life_leave(void) {
+    if (g_attract) speed = real_speed;
+}
+
 const app_t app_life = {
     .name = "Game of Life",
     .orient = ORIENT_LANDSCAPE,
@@ -380,4 +405,7 @@ const app_t app_life = {
     .fps = 30,
     .enter = life_enter,
     .frame = life_frame,
+    .leave = life_leave,
+    .attract = life_attract,
+    .autopilot = life_autopilot,
 };

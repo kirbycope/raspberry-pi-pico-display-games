@@ -8,6 +8,7 @@
 // Holding X or Y keeps moving after a short delay. Any button starts.
 #include "tetris.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -189,7 +190,7 @@ int tetris_clear_lines(tetris_t *t) {
     if (n) {
         t->score += tetris_line_score(n, t->level);
         t->lines += (uint32_t)n;
-        t->level = 1 + t->lines / 10;
+        t->level = (t->start_level ? t->start_level : 1) + t->lines / 10;
     }
     return n;
 }
@@ -198,6 +199,106 @@ uint32_t tetris_gravity_ms(uint32_t level) {
     const uint32_t count = sizeof GRAVITY_MS / sizeof GRAVITY_MS[0];
     if (level < 1) level = 1;
     return GRAVITY_MS[level > count ? count - 1 : level - 1];
+}
+
+// ---------------------------------------------------------------- autopilot rules
+
+// How good a board is after a placement, in hundredths. These are Pierre
+// Dellacherie's features with the El-Tetris weights: how high the piece
+// landed (in half rows), how many piece cells went with the cleared rows,
+// how often a row or a column changes between filled and empty, holes, and
+// how deep the wells are. Holes and wells weigh more than El-Tetris has
+// them: a row with a hole in it never joins a four-line clear, and a second
+// deep well would want a long I of its own. While the stack is low the right-hand column is
+// left out of all of it and kept empty, and only a four-line clear pays, so
+// the player builds up and waits for a long I. Once the stack is high
+// (`danger`) the whole width counts and any line is welcome.
+static int32_t plan_score(const tetris_t *t, int land2, int lines, int eroded, bool danger) {
+    const int w = danger ? TET_W : TET_W - 1;
+    int row_tr = 0, col_tr = 0, holes = 0, wells = 0;
+    for (int r = 0; r < TET_H; r++) {
+        bool prev = true; // the walls count as filled
+        for (int c = 0; c < w; c++) {
+            bool f = t->board[r][c] != 0;
+            row_tr += f != prev;
+            prev = f;
+        }
+        row_tr += !prev;
+    }
+    for (int c = 0; c < w; c++) {
+        bool prev = false; // above the top is empty, below the floor is filled
+        bool covered = false;
+        int depth = 0;
+        for (int r = 0; r < TET_H; r++) {
+            bool f = t->board[r][c] != 0;
+            col_tr += f != prev;
+            prev = f;
+            if (f) covered = true;
+            else if (covered) holes++;
+            // A well cell: empty, with both neighbours filled; deeper counts more.
+            bool left = c == 0 || t->board[r][c - 1], right = c == w - 1 || t->board[r][c + 1];
+            if (!f && left && right) wells += ++depth;
+            else depth = 0;
+        }
+        col_tr += !prev;
+    }
+    int32_t s = -225 * land2 - 322 * row_tr - 935 * col_tr - 2000 * holes - 450 * wells;
+    if (danger) return s + 342 * eroded;
+    // Anything in the right-hand column spoils the next four-line clear, and
+    // covering it over is worst of all.
+    int well_cells = 0, well_holes = 0;
+    for (int r = 0; r < TET_H; r++) {
+        if (t->board[r][TET_W - 1]) well_cells++;
+        else if (well_cells) well_holes++;
+    }
+    return s - 1000 * well_cells - 790 * well_holes + (lines == 4 ? 4000 : -300 * lines);
+}
+
+void tetris_plan(const tetris_t *t, int *rot, int *x) {
+    *rot = t->rot;
+    *x = t->x;
+    // The stack is high when anything reaches above the bottom ten rows,
+    // judged before the move.
+    int top = TET_H;
+    for (int r = 0; r < TET_H && top == TET_H; r++)
+        for (int c = 0; c < TET_W; c++)
+            if (t->board[r][c]) { top = r; break; }
+    bool danger = TET_H - top > 10;
+    int32_t best = INT32_MIN;
+    tetris_t sim;
+    for (int turns = 0; turns < 4; turns++) {
+        if (turns && t->type == TET_O) break; // an O looks the same every way up
+        for (int col = -2; col < TET_W; col++) {
+            sim = *t;
+            bool ok = true;
+            for (int i = 0; i < turns && ok; i++) ok = tetris_rotate(&sim);
+            while (ok && sim.x != col) ok = tetris_move(&sim, col > sim.x ? 1 : -1, 0);
+            if (!ok) continue;
+            tetris_hard_drop(&sim);
+            int8_t c[4][2];
+            tetris_cells(sim.type, sim.rot, c);
+            int lo = 9, hi = -1;
+            for (int i = 0; i < 4; i++) {
+                if (c[i][1] < lo) lo = c[i][1];
+                if (c[i][1] > hi) hi = c[i][1];
+            }
+            int land2 = 2 * TET_H - (2 * sim.y + lo + hi) - 1;
+            int lines = tetris_lock(&sim);
+            if (sim.over) continue;
+            int eroded = 0;
+            uint32_t full = tetris_full_rows(&sim);
+            for (int i = 0; i < 4; i++)
+                if (sim.y + c[i][1] >= 0) eroded += (int)(full >> (sim.y + c[i][1]) & 1);
+            eroded *= lines;
+            tetris_clear_lines(&sim);
+            int32_t s = plan_score(&sim, land2, lines, eroded, danger);
+            if (s > best) {
+                best = s;
+                *rot = (t->rot + turns) & 3;
+                *x = col;
+            }
+        }
+    }
 }
 
 // ---------------------------------------------------------------- app
@@ -226,6 +327,9 @@ static int clear_count;
 static bool new_best;
 static uint32_t led_ms;
 static uint8_t led_rgb[3];
+static uint32_t start_level = 1; // attract mode starts higher, where it is brisk
+static uint32_t piece_no;        // counts pieces in, so the autopilot sees a new one
+static tetris_attract_stats_t stats;
 // The streak a hard drop leaves behind.
 static struct { int type, rot, x, y0, y1; uint32_t ms; } trail;
 
@@ -250,6 +354,8 @@ static void led_flash(uint8_t r, uint8_t g, uint8_t b, uint32_t ms) {
 
 static void new_game(void) {
     tetris_reset(&game);
+    game.start_level = game.level = start_level;
+    piece_no++;
     state = ST_PLAY;
     fall_ms = lock_ms = state_ms = 0;
     lock_resets = 0;
@@ -260,6 +366,7 @@ static void new_game(void) {
 }
 
 static void tetris_enter(void) {
+    start_level = 1;
     state = ST_TITLE;
     state_ms = anim_ms = 0;
     led_ms = 0;
@@ -499,6 +606,7 @@ static void draw_game_over(void) {
 static void end_game(void) {
     state = ST_OVER;
     state_ms = 0;
+    stats.games++;
     if (game.score > g_save.tetris_best) {
         g_save.tetris_best = game.score;
         new_best = true;
@@ -523,6 +631,7 @@ static void land(void) {
         return;
     }
     if (!tetris_spawn(&game)) { end_game(); return; }
+    piece_no++;
     lowest_y = game.y;
 }
 
@@ -595,11 +704,13 @@ static bool tetris_frame(const input_t *in, uint32_t dt) {
         break;
     case ST_CLEAR:
         if (state_ms >= CLEAR_MS) {
-            tetris_clear_lines(&game);
+            int n = tetris_clear_lines(&game);
+            stats.lines += (uint32_t)n;
+            if (n == 4) stats.tetrises++;
             state = ST_PLAY;
             state_ms = 0;
             if (!tetris_spawn(&game)) end_game();
-            else lowest_y = game.y;
+            else lowest_y = game.y, piece_no++;
         }
         break;
     case ST_OVER:
@@ -628,6 +739,125 @@ static bool tetris_frame(const input_t *in, uint32_t dt) {
     return true;
 }
 
+// ---------------------------------------------------------------- attract mode
+
+// The autopilot plays like an unhurried good player: a moment to look at
+// each new piece, then a tap per turn and per column at a human pace, a beat
+// to line it up, and a hard drop. Everything is quicker once gravity is.
+#define ATTRACT_LEVEL 5
+#define OVER_SHOW_MS 2000
+
+static struct {
+    uint32_t piece;     // piece_no the plan is for
+    int rot, x;         // where it is going
+    int32_t wait_ms;    // until the next tap
+    bool lined_up;      // in place, waiting out the beat before the drop
+    bool tapped;        // a button was held last frame, so release it now
+    int last_x, last_rot; // where the piece was before the last tap
+    int misses;           // taps that changed nothing
+    uint8_t last_btn;     // the last turn or move tapped
+    uint32_t rng;
+} pilot;
+
+// The autopilot's own dice, so its pacing leaves the piece order alone.
+static int pilot_rand(int lo, int hi) {
+    pilot.rng ^= pilot.rng << 13;
+    pilot.rng ^= pilot.rng >> 17;
+    pilot.rng ^= pilot.rng << 5;
+    return lo + (int)(pilot.rng % (uint32_t)(hi - lo + 1));
+}
+
+// A delay between lo and hi milliseconds, shortened as gravity speeds up:
+// full length at level 5 and below, down to three eighths at level 10.
+static int32_t pace_ms(int lo, int hi) {
+    uint32_t g = tetris_gravity_ms(game.level), full = tetris_gravity_ms(ATTRACT_LEVEL);
+    uint32_t k = g >= full ? 256 : g * 256 / full;
+    if (k < 96) k = 96;
+    return (int32_t)((uint32_t)pilot_rand(lo, hi) * k / 256);
+}
+
+static uint8_t tap(uint8_t btn, int32_t then_wait) {
+    pilot.tapped = true;
+    pilot.last_btn = btn & (BTN_A | BTN_X | BTN_Y);
+    pilot.wait_ms = then_wait;
+    return btn;
+}
+
+// Rows at the bottom that are full but for the right-hand column.
+static int ready_rows(void) {
+    int n = 0;
+    for (int r = TET_H - 1; r >= 0 && !game.board[r][TET_W - 1]; r--, n++)
+        for (int c = 0; c < TET_W - 1; c++)
+            if (!game.board[r][c]) return n;
+    return n;
+}
+
+static void tetris_attract(void) {
+    memset(&pilot, 0, sizeof pilot);
+    memset(&stats, 0, sizeof stats);
+    pilot.rng = hal_random() | 1u;
+    start_level = ATTRACT_LEVEL;
+    new_game();
+    // Play unseen, the same way, until four rows wait on a long I, so the
+    // demo opens on a stack ready for a TETRIS! rather than an empty well.
+    for (int n = 0; n < 24 && ready_rows() < 4; n++) {
+        int rot, x;
+        tetris_plan(&game, &rot, &x);
+        for (int i = 0; i < 4 && game.rot != rot; i++) tetris_rotate(&game);
+        while (game.x != x && tetris_move(&game, x > game.x ? 1 : -1, 0)) {}
+        tetris_hard_drop(&game);
+        tetris_lock(&game);
+        tetris_clear_lines(&game);
+        if (game.over || !tetris_spawn(&game)) {
+            new_game();
+            break;
+        }
+    }
+    lowest_y = game.y;
+    piece_no++;
+}
+
+static uint8_t tetris_autopilot(uint32_t dt) {
+    if (pilot.tapped) { // one frame down, then up, so every tap is a fresh press
+        pilot.tapped = false;
+        return 0;
+    }
+    pilot.wait_ms -= (int32_t)dt;
+    if (state == ST_TITLE) return tap(BTN_A, 0);
+    if (state == ST_OVER) return state_ms >= OVER_SHOW_MS ? tap(BTN_A, 0) : 0;
+    if (state != ST_PLAY) return 0;
+
+    if (pilot.piece != piece_no) {
+        pilot.piece = piece_no;
+        tetris_plan(&game, &pilot.rot, &pilot.x);
+        pilot.wait_ms = pace_ms(140, 260); // a look at the new piece
+        pilot.lined_up = false;
+        pilot.misses = 0;
+        pilot.last_btn = 0;
+        stats.pieces++;
+    }
+    if (pilot.wait_ms > 0) return 0;
+
+    // A turn or a move that went nowhere: the piece fell into something, so
+    // think again from here, and after two of those just drop it.
+    if (pilot.last_btn && game.x == pilot.last_x && game.rot == pilot.last_rot && ++pilot.misses <= 2)
+        tetris_plan(&game, &pilot.rot, &pilot.x);
+    pilot.last_btn = 0;
+    if (pilot.misses > 2) pilot.rot = game.rot, pilot.x = game.x;
+    pilot.last_x = game.x;
+    pilot.last_rot = game.rot;
+    if (game.rot != pilot.rot) return tap(BTN_A, pace_ms(60, 95));
+    if (game.x != pilot.x) return tap(game.x < pilot.x ? BTN_X : BTN_Y, pace_ms(60, 90));
+    if (!pilot.lined_up) {
+        pilot.lined_up = true;
+        pilot.wait_ms = pace_ms(90, 200);
+        return 0;
+    }
+    return tap(BTN_B, 0);
+}
+
+const tetris_attract_stats_t *tetris_attract_stats(void) { return &stats; }
+
 const app_t app_tetris = {
     .name = "Tetris",
     .orient = ORIENT_PORTRAIT,
@@ -635,4 +865,6 @@ const app_t app_tetris = {
     .fps = 60,
     .enter = tetris_enter,
     .frame = tetris_frame,
+    .attract = tetris_attract,
+    .autopilot = tetris_autopilot,
 };

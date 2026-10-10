@@ -11,6 +11,8 @@
 //   tap <buttons> [ms]   press for ms (default 80) then release
 //   shot <file.bmp>      save the screen as it was last presented
 //   quit
+// Any other line goes to main.c as a remote command, as it would over the
+// Pico's USB port: "attract", "attract Tetris", "open Tetris", "menu".
 // PDG_APP=<name> opens that app at start, PDG_SAVE=<file> keeps the save data
 // in a file (scripted runs otherwise start from nothing), PDG_SEED=<n> seeds
 // the random numbers, PDG_SHOT_SCALE=<n> enlarges the screenshots.
@@ -50,6 +52,8 @@ static uint32_t record_from, record_to = 0xFFFFFFFFu, record_every = 1, record_c
 static uint8_t presented[SCREEN_LONG * SCREEN_SHORT * 2];
 static int presented_w = SCREEN_LONG, presented_h = SCREEN_SHORT;
 
+static char pending[96], handed_out[96];
+static bool has_pending;
 static const char *save_path;
 static uint8_t memory_save[HAL_SAVE_SIZE];
 static bool memory_save_valid;
@@ -115,7 +119,7 @@ static void script_step(void) {
         if (script_next_ms <= virtual_ms) script_next_ms = virtual_ms + 1;
     }
     char line[512];
-    while (running && virtual_ms >= script_next_ms && !script_release_mask) {
+    while (running && virtual_ms >= script_next_ms && !script_release_mask && !has_pending) {
         if (!fgets(line, sizeof line, script)) { running = false; break; }
         char cmd[32] = {0}, arg[480] = {0};
         unsigned n = 0;
@@ -130,7 +134,12 @@ static void script_step(void) {
             script_next_ms = script_release_at;
         } else if (!strcmp(cmd, "shot")) write_bmp(arg);
         else if (!strcmp(cmd, "quit")) running = false;
-        else fprintf(stderr, "sim: unknown command %s\n", cmd);
+        else {
+            line[strcspn(line, "\r\n")] = 0;
+            strncpy(pending, line, sizeof pending - 1);
+            has_pending = true;
+            break; // one remote command per step, so main.c sees each
+        }
     }
 }
 
@@ -233,6 +242,20 @@ uint8_t hal_buttons(void) {
     pump_events();
 #endif
     return keys_down;
+}
+
+uint8_t hal_physical_buttons(void) { return hal_buttons(); }
+
+const char *hal_remote_command(void) {
+    if (script) script_step();
+    if (!has_pending) return NULL;
+    has_pending = false;
+    memcpy(handed_out, pending, sizeof handed_out);
+    return handed_out;
+}
+
+void hal_remote_reply(const char *l) {
+    if (script) printf("sim: %6u ms remote: %s\n", virtual_ms, l);
 }
 
 void hal_led(uint8_t r, uint8_t g, uint8_t b) { led[0] = r, led[1] = g, led[2] = b; }

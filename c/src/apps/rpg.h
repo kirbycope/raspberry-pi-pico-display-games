@@ -164,6 +164,31 @@ void rpg_battle_start(rpg_battle_t *b, const rpg_hero_t *h, int monster);
 // Returns false (and adds no events) when the command cannot be used.
 bool rpg_battle_turn(rpg_battle_t *b, rpg_hero_t *h, int cmd, int arg, rpg_events_t *out);
 
+// ---- attract mode ----
+
+// The heroes attract mode plays, each dropped straight in front of a boss:
+// the Red Dragon at Lv 20, or the forest's Horn Beast at Lv 7, a few XP
+// short of learning Blaze, then on into the Old Ruins.
+enum { RPG_DEMO_DRAGON, RPG_DEMO_FOREST, RPG_DEMOS };
+void rpg_demo_hero(rpg_hero_t *h, int which);
+
+// What the demo has done so far in a battle; zero it when one starts.
+typedef struct {
+    uint8_t round, heals;
+    uint8_t last; // the command chosen last round
+} rpg_demo_t;
+
+// The command the demo picks this round, chosen to look good and to win:
+// it opens with Attack, then alternates magic (Blaze, or Fire before Blaze
+// is learned) with Attack, and heals whenever the monster's worst next blow
+// could bring the hero near zero: Heal, or a potion when the hero is nearly
+// down, and the other of the two the next time.
+// Sets *arg to the spell or item.
+int rpg_demo_command(const rpg_battle_t *b, const rpg_hero_t *h, rpg_demo_t *d, int *arg);
+
+// The hero the RPG is playing now (in rpg.c), for tests.
+const rpg_hero_t *rpg_current_hero(void);
+
 // ---- drawing helpers, in rpg_art.c ----
 
 // The zone's backdrop in a band of the screen, animated by t (ms). Night

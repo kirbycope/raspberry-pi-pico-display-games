@@ -85,6 +85,43 @@ Everywhere else:
 - High scores, the pet, the RPG and the counters are kept in the last 4 KB of flash, so they survive
   unplugging.
 
+### Attract mode
+
+Leave the menu alone for 30 seconds and the apps take turns playing themselves, like an arcade
+cabinet. Press any button to go back to the menu.
+
+- Tetris plays for Tetrises.
+- Flappy Bird threads the pipes.
+- Pico Quest fights a battle.
+- Bad Apple starts on the broom ride.
+- A demo egg hatches into a baby dragon, which gets fed and played with.
+- Life runs through its patterns.
+- The DVD logo hits its corner.
+
+Nothing done in attract mode is saved: your scores, your RPG game and your own pet are untouched.
+
+### Driving it from a computer
+
+The USB cable doubles as a remote control, which is handy for filming with your hands off the
+board:
+
+```bash
+python c/tools/remote.py attract                 # the rotation
+python c/tools/remote.py attract Tetris          # one app playing itself until you stop it
+python c/tools/remote.py open "Pico Quest"       # open an app
+python c/tools/remote.py tap A                   # press a button
+python c/tools/remote.py play c/shots/rpg.txt --countdown 5
+python c/tools/remote.py menu
+python c/tools/remote.py flash c/build-pico/pico_display_games.uf2
+```
+
+- `play` runs one of the simulator scripts in real time, after a countdown so the camera can start
+  rolling.
+- `flash` restarts the board into its USB drive and copies new firmware on, so BOOTSEL is only
+  needed the first time.
+- The commands themselves are listed at the top of
+  [`c/src/platform/hal_pico.c`](c/src/platform/hal_pico.c) and [`c/src/main.c`](c/src/main.c).
+
 ### The apps
 
 #### Bad Apple

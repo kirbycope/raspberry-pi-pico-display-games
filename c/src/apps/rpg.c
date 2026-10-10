@@ -13,6 +13,10 @@
 //
 // The RGB LED flashes red when the hero is hit, green on a heal and gold on
 // a level up.
+//
+// In attract mode a demo hero is dropped straight into a boss fight, the Red
+// Dragon or the forest's Horn Beast by turns, and the autopilot works the
+// menus at a person's pace. The demo hero is never saved.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -72,6 +76,15 @@ static floater_t floats[4];
 static uint32_t led_ms;
 static uint8_t led_rgb[3];
 
+// Attract mode.
+static bool demo;           // the hero is attract mode's and is never saved
+static int demo_next;       // which demo hero plays next
+static rpg_demo_t demo_memo; // the demo's choices so far this battle
+static int ap_cmd, ap_arg;  // the command the autopilot is steering towards
+static uint32_t ap_wait;    // ms before the autopilot's next press
+static int ap_seen = -1;    // the screen and menu it last looked at
+static bool ap_tapped;      // a button went down last frame; let it go
+
 // ---- helpers ----
 
 static void led(uint8_t r, uint8_t g, uint8_t b, uint32_t ms) {
@@ -80,6 +93,7 @@ static void led(uint8_t r, uint8_t g, uint8_t b, uint32_t ms) {
 }
 
 static void save_hero(void) {
+    if (demo) return;
     hero.play_s += play_ms / 1000;
     play_ms %= 1000;
     memset(g_save.rpg, 0, sizeof g_save.rpg);
@@ -518,6 +532,7 @@ static void start_battle(void) {
     shown_hp = target_hp = hero.hp;
     shown_mp = target_mp = hero.mp;
     for (int i = 0; i < 4; i++) floats[i].text[0] = 0;
+    memset(&demo_memo, 0, sizeof demo_memo);
     evs.count = 1;
     ev_index = 0;
     ev_ms = 0;
@@ -969,6 +984,7 @@ static void rpg_enter(void) {
     note_ms = banner_ms = 0;
     play_ms = 0;
     led_ms = 0;
+    demo = false;
     rpg_set_random(NULL);
 #ifdef PDG_SIM
     // Screenshots of later zones: PDG_RPG_JUMP=zone,battle,level starts a
@@ -1024,6 +1040,86 @@ static void rpg_leave(void) {
     if (rpg_save_valid(&hero)) save_hero();
 }
 
+// ---- attract mode ----
+
+const rpg_hero_t *rpg_current_hero(void) { return &hero; }
+
+static void rpg_attract(void) {
+    demo = true;
+    rpg_demo_hero(&hero, demo_next);
+    demo_next = (demo_next + 1) % RPG_DEMOS;
+    note_ms = banner_ms = 0;
+    ap_wait = 0, ap_seen = -1, ap_tapped = false;
+    start_battle();
+}
+
+// A press, held for this one frame, then nothing for wait ms. A little
+// unevenness in the timing reads as a person rather than a machine.
+static uint8_t ap_tap(uint8_t button, uint32_t wait) {
+    ap_tapped = true;
+    ap_wait = wait ? wait + rpg_hash(now_ms) % 90u : 0;
+    return button;
+}
+
+// Moves the cursor a step the short way round towards target, or presses A
+// on it and then waits after_ms.
+static uint8_t ap_steer(int target, int n, uint32_t after_ms) {
+    if (cursor == target) return ap_tap(BTN_A, after_ms);
+    int ahead = (target - cursor + n) % n;
+    return ap_tap(ahead <= n - ahead ? BTN_X : BTN_Y, 280);
+}
+
+static uint8_t rpg_autopilot(uint32_t dt) {
+    if (ap_tapped) {
+        ap_tapped = false;
+        return 0;
+    }
+    // Something new on screen: give it a moment to be read.
+    int seen = screen * 100 + (screen == SCR_BATTLE ? phase * 10 + menu : 0);
+    if (seen != ap_seen) {
+        ap_seen = seen;
+        if (screen == SCR_CAMP) ap_wait = banner_ms ? 2700 : 1300;
+        else if (screen == SCR_ENDING) ap_wait = 4500;
+        else if (screen == SCR_BATTLE && phase == BP_MENU) {
+            ap_wait = menu == MENU_MAIN ? 600 : 420;
+            if (menu == MENU_MAIN) ap_cmd = rpg_demo_command(&battle, &hero, &demo_memo, &ap_arg);
+        } else ap_wait = 700;
+    }
+
+    if (screen == SCR_BATTLE && phase != BP_MENU) {
+        // Messages: let the boss's entrance play out, hurry the rest along
+        // once each has landed, and dwell a little on the last one.
+        if (phase == BP_DONE) return ap_tap(BTN_A, 0);
+        if (phase == BP_INTRO) return 0;
+        const rpg_event_t *e = &evs.ev[ev_index];
+        bool final = ev_index == evs.count - 1 && battle.state != RPG_ONGOING;
+        uint32_t at = final ? 1500 : event_length(e->kind) * 3 / 4;
+        return ev_impacted && ev_ms >= at ? ap_tap(BTN_A, 0) : 0;
+    }
+
+    if (ap_wait > dt) {
+        ap_wait -= dt;
+        return 0;
+    }
+    ap_wait = 0;
+    switch (screen) {
+    case SCR_BATTLE:
+        if (menu == MENU_MAIN) return ap_steer(ap_cmd == RPG_CMD_ITEM ? 2 : ap_cmd == RPG_CMD_MAGIC ? 1 : 0, 4, 0);
+        return ap_steer(ap_arg, menu == MENU_MAGIC ? RPG_SPELLS : RPG_ITEMS, 0);
+    case SCR_CAMP: {
+        // Rest first when worn down, then on to the next fight.
+        bool worn = hero.hp * 2 < rpg_max_hp(hero.level) && hero.gold >= (uint32_t)rpg_rest_price(&hero);
+        return ap_steer(worn ? 1 : 0, 4, 1300);
+    }
+    case SCR_ENDING:
+        // The journey's end has been seen; start the next demo.
+        rpg_attract();
+        return 0;
+    case SCR_SHOP: return ap_tap(BTN_B, 0);
+    default: return ap_tap(BTN_A, 0); // the title or the status screen
+    }
+}
+
 const app_t app_rpg = {
     .name = "Pico Quest",
     .orient = ORIENT_PORTRAIT,
@@ -1032,4 +1128,6 @@ const app_t app_rpg = {
     .enter = rpg_enter,
     .frame = rpg_frame,
     .leave = rpg_leave,
+    .attract = rpg_attract,
+    .autopilot = rpg_autopilot,
 };
