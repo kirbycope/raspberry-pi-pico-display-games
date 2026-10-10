@@ -239,6 +239,13 @@ static bool ba_frame(const input_t *in, uint32_t dt) {
     return true;
 }
 
+// Attract mode starts 20 seconds in, on the broom ride, rather than on the
+// black opening, and without the controls overlay.
+static void ba_attract(void) {
+    play_ms = 20000;
+    hint_ms = 0;
+}
+
 const app_t app_bad_apple = {
     .name = "Bad Apple",
     .orient = ORIENT_LANDSCAPE,
@@ -246,4 +253,5 @@ const app_t app_bad_apple = {
     .fps = 30,
     .enter = ba_enter,
     .frame = ba_frame,
+    .attract = ba_attract,
 };

@@ -137,6 +137,30 @@ static bool dvd_frame(const input_t *in, uint32_t dt) {
     return true;
 }
 
+// Attract mode always gets its corner: the logo starts on a line that meets
+// the bottom-right corner 2.6 seconds in, at the normal speed.
+static int real_speed;
+static bool real_show_count;
+
+static void dvd_attract(void) {
+    real_speed = speed;
+    real_show_count = show_count;
+    speed = 50;
+    logo.vx = speed * 256;
+    logo.vy = speed * 256 * 3 / 4;
+    int32_t t_ms = 2600;
+    logo.x = ((int32_t)(SCREEN_LONG - LOGO_W) << 8) - logo.vx * t_ms / 1000;
+    logo.y = ((int32_t)(SCREEN_SHORT - LOGO_H) << 8) - logo.vy * t_ms / 1000;
+    show_count = false;
+}
+
+// The demo's speed and hidden counter are not the player's.
+static void dvd_leave(void) {
+    if (!g_attract) return;
+    speed = real_speed;
+    show_count = real_show_count;
+}
+
 const app_t app_dvd = {
     .name = "Bouncing DVD",
     .orient = ORIENT_LANDSCAPE,
@@ -144,4 +168,6 @@ const app_t app_dvd = {
     .fps = 30,
     .enter = dvd_enter,
     .frame = dvd_frame,
+    .leave = dvd_leave,
+    .attract = dvd_attract,
 };

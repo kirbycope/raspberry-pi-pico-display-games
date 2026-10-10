@@ -370,3 +370,63 @@ bool rpg_battle_turn(rpg_battle_t *b, rpg_hero_t *h, int cmd, int arg, rpg_event
     if (h->hp == 0) lose(b, h, out);
     return true;
 }
+
+// ---- attract mode ----
+
+void rpg_demo_hero(rpg_hero_t *h, int which) {
+    rpg_new_game(h);
+    if (which == RPG_DEMO_DRAGON) {
+        // At the dragon's door, well equipped, a level up away.
+        h->zone = 2, h->battle = (uint8_t)(rpg_zones[2].battles - 1);
+        h->level = 20, h->sword = 4, h->armor = 3;
+        h->hp = (uint16_t)rpg_max_hp(20), h->mp = (uint16_t)rpg_max_mp(20);
+        h->xp = rpg_xp_for_level(21) - 150;
+        h->potions = 3, h->ethers = 2, h->gold = 1460;
+        h->wins = 38, h->defeats = 2, h->play_s = 2 * 3600 + 14 * 60 + 9;
+    } else {
+        // Facing the Horn Beast a little worn from the walk, 12 XP from Lv 8.
+        h->zone = 0, h->battle = (uint8_t)(rpg_zones[0].battles - 1);
+        h->level = 7, h->sword = 1, h->armor = 1;
+        h->hp = 36, h->mp = (uint16_t)rpg_max_mp(7);
+        h->xp = rpg_xp_for_level(8) - 12;
+        h->potions = 2, h->ethers = 1, h->gold = 96;
+        h->wins = 9, h->play_s = 27 * 60 + 40;
+    }
+}
+
+// The most the monster can do to the hero on its next turn.
+static int worst_blow(const rpg_battle_t *b, const rpg_hero_t *h) {
+    int special = rpg_monsters[b->monster].special, def = rpg_defense(h);
+    int worst = rpg_damage_max(b->atk, def);
+    if (special == RPG_SP_BREATH && b->turn % 3 == 2) worst = rpg_damage_max(b->atk * 5 / 4, def / 2);
+    else if (special == RPG_SP_SPELL) worst = rpg_damage_max(b->atk, def / 2);
+    return worst;
+}
+
+int rpg_demo_command(const rpg_battle_t *b, const rpg_hero_t *h, rpg_demo_t *d, int *arg) {
+    int lv = h->level, max_hp = rpg_max_hp(lv);
+    int fire_min = 8 + 2 * lv, blaze_min = 20 + 4 * lv;
+    int worst = worst_blow(b, h);
+    bool danger = h->hp < max_hp && (h->hp <= worst * 3 / 2 || h->hp * 3 < max_hp);
+    int cmd = RPG_CMD_ATTACK;
+    *arg = 0;
+    if (danger && rpg_can_cast(h, RPG_SPELL_FIRE) && b->hp <= fire_min) {
+        cmd = RPG_CMD_MAGIC, *arg = RPG_SPELL_FIRE; // a sure finishing blow beats healing
+    } else if (danger && rpg_can_cast(h, RPG_SPELL_BLAZE) && b->hp <= blaze_min) {
+        cmd = RPG_CMD_MAGIC, *arg = RPG_SPELL_BLAZE;
+    } else if (danger && (h->potions || rpg_can_cast(h, RPG_SPELL_HEAL))) {
+        // Heal, or a potion when the hero is nearly down; then the other of
+        // the two next time, so both get seen.
+        bool potion = h->potions && (h->hp * 4 < max_hp || d->heals % 2 == 1 || !rpg_can_cast(h, RPG_SPELL_HEAL));
+        if (potion) cmd = RPG_CMD_ITEM, *arg = RPG_ITEM_POTION;
+        else cmd = RPG_CMD_MAGIC, *arg = RPG_SPELL_HEAL;
+        d->heals++;
+    } else if (d->round > 0 && d->last == RPG_CMD_ATTACK) {
+        if (rpg_can_cast(h, RPG_SPELL_BLAZE)) cmd = RPG_CMD_MAGIC, *arg = RPG_SPELL_BLAZE;
+        else if (rpg_can_cast(h, RPG_SPELL_FIRE)) cmd = RPG_CMD_MAGIC, *arg = RPG_SPELL_FIRE;
+    }
+    // A heal does not count as the round's move: the next one still alternates.
+    if (!(cmd == RPG_CMD_ITEM || (cmd == RPG_CMD_MAGIC && *arg == RPG_SPELL_HEAL))) d->last = (uint8_t)cmd;
+    d->round++;
+    return cmd;
+}

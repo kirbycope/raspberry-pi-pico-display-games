@@ -20,7 +20,15 @@ void hal_init(void);
 bool hal_running(void);
 uint32_t hal_millis(void);
 void hal_sleep_ms(uint32_t ms);
+// Buttons down now: the real ones plus any held over the USB remote.
 uint8_t hal_buttons(void);
+// Only the real buttons, so a person can always take back control.
+uint8_t hal_physical_buttons(void);
+// The next remote command the hardware layer did not handle itself (button
+// presses it handles), such as "attract Tetris", or NULL. See main.c.
+const char *hal_remote_command(void);
+// Prints a line back to whatever is driving the remote.
+void hal_remote_reply(const char *line);
 void hal_led(uint8_t r, uint8_t g, uint8_t b);
 void hal_backlight(uint8_t level);
 // Applies gfx's orientation to the panel. flip turns portrait upside down.

@@ -145,3 +145,72 @@ TEST(flappy_medals_at_10_20_40) {
     CHECK_EQ(flappy_medal(39), 2);
     CHECK_EQ(flappy_medal(40), 3);
 }
+
+// ---------------------------------------------------------------- attract mode
+
+#include "core/app.h"
+#include "core/hal.h"
+
+// Flies the attract-mode player from a fresh reset until it crashes or
+// passes `cap` pipes, and returns the pipes passed.
+static uint32_t fly(int aim, bool look_ahead, uint32_t cap) {
+    flappy_reset(&f, 135);
+    flappy_flap(&f);
+    bool held = false;
+    for (int k = 0; f.score < cap && k < 200000; k++) {
+        uint32_t dt = k % 3 == 2 ? 17 : 16;
+        bool flap = !held && flappy_should_flap(&f, aim, look_ahead);
+        held = flap; // a flap is a press, so never two frames running
+        if (flap) flappy_flap(&f);
+        flappy_fall(&f, dt);
+        flappy_scroll(&f, dt);
+        if (flappy_hits_ground(&f) || flappy_hits_pipe(&f)) break;
+    }
+    return f.score;
+}
+
+TEST(flappy_autopilot_threads_long_runs) {
+    // 200 runs of 300 pipes on the seeds tried never crashed; ask for 60.
+    for (int run = 0; run < 8; run++) CHECK(fly(0, true, 60) >= 60);
+}
+
+TEST(flappy_autopilot_misjudges_when_it_stops_looking_ahead) {
+    // Aiming at the lower or the upper lip of the next gap crashes there.
+    for (int run = 0; run < 6; run++) CHECK(fly(run % 2 ? 24 : -24, false, 50) <= 1);
+}
+
+TEST(flappy_autopilot_plays_attract_mode_and_starts_again) {
+    gfx_set_orientation(ORIENT_PORTRAIT);
+    app_flappy.enter();
+    app_flappy.attract();
+    uint8_t prev = 0;
+    uint32_t doubles = 0, presses = 0, quiet = 0, long_quiets = 0;
+    for (uint32_t ms = 0, k = 0; ms < 240000; k++) {
+        uint32_t dt = k % 3 == 2 ? 17 : 16;
+        ms += dt;
+        uint8_t held = app_flappy.autopilot(dt);
+        if (held & prev) doubles++;
+        input_t in = {held, (uint8_t)(held & ~prev), (uint8_t)(prev & ~held)};
+        prev = held;
+        if (in.pressed) {
+            presses++;
+            if (quiet >= 2000) long_quiets++; // the game over panel had its two seconds
+            quiet = 0;
+        } else {
+            quiet += dt;
+        }
+        app_flappy.frame(&in, dt);
+    }
+    const flappy_attract_stats_t *s = flappy_attract_stats();
+    // Each run is flown well to a score picked between 20 and 47, then ends
+    // on a misjudged swoop, so four minutes hold three runs or more.
+    CHECK(s->games >= 3);
+    CHECK(s->fewest >= 15);
+    CHECK(s->best <= 47);
+    CHECK(s->pipes >= 20 * s->games);
+    // Every run after the first began with a press after a pause of two
+    // seconds or more, and flapping is never that slow mid-run.
+    CHECK(long_quiets + 1 >= s->games && long_quiets <= s->games);
+    CHECK_EQ(doubles, 0);
+    CHECK(presses > 400); // about two flaps a second
+}

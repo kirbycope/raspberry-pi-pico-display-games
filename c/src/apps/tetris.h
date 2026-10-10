@@ -21,6 +21,7 @@ typedef struct {
     uint8_t bag[TET_PIECES];
     int bag_left;
     uint32_t score, lines, level;
+    uint32_t start_level; // the level at no lines; 0 counts as 1
     bool over;
 } tetris_t;
 
@@ -45,7 +46,7 @@ int tetris_lock(tetris_t *t);
 // Bit r is set when row r is full.
 uint32_t tetris_full_rows(const tetris_t *t);
 // Removes full rows, scores them at the current level, levels up every ten
-// lines, and returns how many went.
+// lines (counting from the start level), and returns how many went.
 int tetris_clear_lines(tetris_t *t);
 // 100, 300, 500 or 800 for one to four lines, times the level.
 uint32_t tetris_line_score(int lines, uint32_t level);
@@ -53,3 +54,20 @@ uint32_t tetris_line_score(int lines, uint32_t level);
 bool tetris_spawn(tetris_t *t);
 // Milliseconds per row of gravity at a level.
 uint32_t tetris_gravity_ms(uint32_t level);
+
+// The attract-mode player's choice for the falling piece: the rotation
+// (0..3, as in tetris_t) and box column that leave the best board after a
+// hard drop from where the piece is now. It keeps the right-hand column open
+// for four-line clears until the stack gets high, then takes whatever lines
+// it can. One piece deep and integer only, so it is cheap on the Pico.
+void tetris_plan(const tetris_t *t, int *rot, int *x);
+
+// What attract mode has played since it last opened Tetris, for tests and
+// tuning.
+typedef struct {
+    uint32_t games;    // games that ended
+    uint32_t pieces;   // pieces the autopilot placed
+    uint32_t lines;
+    uint32_t tetrises; // four-line clears
+} tetris_attract_stats_t;
+const tetris_attract_stats_t *tetris_attract_stats(void);

@@ -1,0 +1,15 @@
+# Flappy Bird in attract mode (the autopilot), from c/:
+#   PDG_SCRIPT=shots/attract_flappy.txt PDG_SHOT_SCALE=3 ./build-host/pdg_sim
+wait 300
+attract Flappy Bird
+wait 15600
+shot shots/attract_flappy_1.bmp
+wait 33000
+shot shots/attract_flappy_2.bmp
+wait 2600
+shot shots/attract_flappy_3.bmp
+wait 1300
+shot shots/attract_flappy_4.bmp
+wait 1000
+shot shots/attract_flappy_5.bmp
+quit

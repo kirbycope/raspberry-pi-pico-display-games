@@ -1,7 +1,17 @@
 // The Pico Display Pack: an ST7789 240x135 IPS panel on SPI0, four buttons
 // and an RGB LED. Pins, panel offsets and the init sequence follow Pimoroni's
 // own driver (pimoroni-pico, drivers/st7789 and libraries/pico_display).
+//
+// The USB serial port doubles as a remote control, one command per line:
+//   press <buttons>, release <buttons>, tap <buttons> [ms]   e.g. "tap A"
+//   seed <n>    make the random numbers repeatable, as in the simulator
+//   ping        answers "pong"
+// Anything else goes to main.c (attract, open, menu). c/tools/remote.py
+// drives it from a computer.
+#include <ctype.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "hardware/dma.h"
@@ -147,13 +157,98 @@ void hal_init(void) {
     saves_ok = (uintptr_t)&__flash_binary_end <= XIP_BASE + PICO_FLASH_SIZE_BYTES - FLASH_SECTOR_SIZE;
 }
 
+static uint8_t remote_down, remote_tap_mask;
+static uint32_t remote_tap_until;
+static bool seeded;
+static uint32_t seed_state;
+static char line[96], pending[96], handed_out[96];
+static int line_len;
+static bool has_pending;
+
+static uint8_t parse_buttons(const char *s) {
+    uint8_t b = 0;
+    for (; *s; s++) switch (toupper((unsigned char)*s)) {
+        case 'A': b |= BTN_A; break;
+        case 'B': b |= BTN_B; break;
+        case 'X': b |= BTN_X; break;
+        case 'Y': b |= BTN_Y; break;
+        }
+    return b;
+}
+
+static void remote_line(const char *l) {
+    char cmd[16] = {0}, arg[64] = {0};
+    unsigned n = 0;
+    if (sscanf(l, "%15s %63s %u", cmd, arg, &n) < 1) return;
+    if (!strcmp(cmd, "press") || !strcmp(cmd, "hold")) remote_down |= parse_buttons(arg);
+    else if (!strcmp(cmd, "release")) remote_down &= (uint8_t)~parse_buttons(arg);
+    else if (!strcmp(cmd, "tap")) {
+        remote_down |= parse_buttons(arg);
+        remote_tap_mask |= parse_buttons(arg);
+        remote_tap_until = hal_millis() + (n ? n : 80);
+    } else if (!strcmp(cmd, "seed")) {
+        seeded = true;
+        seed_state = (uint32_t)strtoul(arg, NULL, 0);
+        if (!seed_state) seed_state = 1;
+    } else if (!strcmp(cmd, "ping")) {
+        hal_remote_reply("pong");
+        return;
+    } else {
+        snprintf(pending, sizeof pending, "%s", l);
+        has_pending = true;
+        return;
+    }
+    hal_remote_reply("ok");
+}
+
+static void remote_poll(void) {
+    int c;
+    while ((c = getchar_timeout_us(0)) != PICO_ERROR_TIMEOUT) {
+        if (c == '\r' || c == '\n') {
+            if (line_len) {
+                line[line_len] = 0;
+                remote_line(line);
+                line_len = 0;
+            }
+        } else if (line_len < (int)sizeof line - 1) line[line_len++] = (char)c;
+    }
+    if (remote_tap_mask && (int32_t)(hal_millis() - remote_tap_until) >= 0) {
+        remote_down &= (uint8_t)~remote_tap_mask;
+        remote_tap_mask = 0;
+    }
+}
+
+const char *hal_remote_command(void) {
+    remote_poll();
+    if (!has_pending) return NULL;
+    has_pending = false;
+    memcpy(handed_out, pending, sizeof handed_out);
+    return handed_out;
+}
+
+void hal_remote_reply(const char *l) {
+    printf("%s\n", l);
+}
+
 bool hal_running(void) { return true; }
 uint32_t hal_millis(void) { return to_ms_since_boot(get_absolute_time()); }
 void hal_sleep_ms(uint32_t ms) { sleep_ms(ms); }
-uint32_t hal_random(void) { return get_rand_32(); }
+uint32_t hal_random(void) {
+    if (!seeded) return get_rand_32();
+    // The simulator's xorshift, so a seeded run matches it.
+    seed_state ^= seed_state << 13;
+    seed_state ^= seed_state >> 17;
+    seed_state ^= seed_state << 5;
+    return seed_state;
+}
 void hal_reset(void) { watchdog_reboot(0, 0, 0); for (;;) tight_loop_contents(); }
 
 uint8_t hal_buttons(void) {
+    remote_poll();
+    return hal_physical_buttons() | remote_down;
+}
+
+uint8_t hal_physical_buttons(void) {
     uint8_t b = 0;
     if (!gpio_get(PIN_A)) b |= BTN_A;
     if (!gpio_get(PIN_B)) b |= BTN_B;

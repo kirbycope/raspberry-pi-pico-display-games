@@ -1,0 +1,15 @@
+# Tetris in attract mode (the autopilot), from c/:
+#   PDG_SCRIPT=shots/attract_tetris.txt PDG_SHOT_SCALE=3 ./build-host/pdg_sim
+wait 300
+attract Tetris
+wait 700
+shot shots/attract_tetris_1.bmp
+wait 2860
+shot shots/attract_tetris_2.bmp
+wait 26600
+shot shots/attract_tetris_3.bmp
+wait 80700
+shot shots/attract_tetris_4.bmp
+wait 1700
+shot shots/attract_tetris_5.bmp
+quit

@@ -29,6 +29,15 @@ typedef struct {
     // Optional. Runs every frame whatever app is open, so the pet keeps
     // getting hungry while you play Tetris.
     void (*background)(uint32_t dt_ms);
+    // Optional, for attract mode, where the apps take turns playing
+    // themselves. attract() runs after enter() to set up something worth
+    // watching; autopilot() returns the buttons to hold this frame. An app
+    // with neither just runs untouched. Nothing done in attract mode is saved.
+    void (*attract)(void);
+    uint8_t (*autopilot)(uint32_t dt_ms);
 } app_t;
+
+// True while attract mode is running the current app.
+extern bool g_attract;
 
 extern const app_t app_bad_apple, app_tetris, app_flappy, app_pet, app_pomodoro, app_life, app_dvd, app_rpg;

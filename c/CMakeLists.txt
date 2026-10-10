@@ -31,6 +31,7 @@ endif()
 
 file(GLOB APP_SOURCES CONFIGURE_DEPENDS src/apps/*.c)
 set(GAME_SOURCES
+    src/core/app.c
     src/core/gfx.c
     src/core/save.c
     src/assets/assets.c

@@ -193,3 +193,132 @@ TEST(tetris_game_over_when_locked_above_the_top) {
     tetris_lock(&t);
     CHECK(t.over);
 }
+
+// ---------------------------------------------------------------- attract mode
+
+#include "core/app.h"
+#include "core/hal.h"
+
+// Plays one piece where tetris_plan says, as the autopilot would.
+static int play_planned(tetris_t *g) {
+    int rot, x;
+    tetris_plan(g, &rot, &x);
+    for (int i = 0; i < 4 && g->rot != rot; i++) tetris_rotate(g);
+    while (g->x != x && tetris_move(g, x > g->x ? 1 : -1, 0)) {}
+    CHECK_EQ(g->rot, rot);
+    CHECK_EQ(g->x, x);
+    tetris_hard_drop(g);
+    int n = tetris_lock(g);
+    tetris_clear_lines(g);
+    return n;
+}
+
+TEST(tetris_plan_drops_a_long_i_into_the_well_for_four_lines) {
+    place(TET_I, 0, 3, -1);
+    for (int r = TET_H - 4; r < TET_H; r++) fill_row(r, TET_W - 1);
+    int rot, x;
+    tetris_plan(&t, &rot, &x);
+    int8_t c[4][2];
+    tetris_cells(TET_I, rot, c);
+    for (int i = 0; i < 4; i++) CHECK_EQ(x + c[i][0], TET_W - 1);
+    CHECK_EQ(play_planned(&t), 4);
+    for (int r = 0; r < TET_H; r++)
+        for (int col = 0; col < TET_W; col++) CHECK_EQ(t.board[r][col], 0);
+}
+
+TEST(tetris_plan_keeps_the_right_column_open_while_the_stack_is_low) {
+    // Every piece but the I, twice over, onto an empty board: nothing is left
+    // in the well (a piece may dip in to take a single line), so the rows
+    // wait for a long I.
+    tetris_reset(&t);
+    static const int order[] = {TET_T, TET_S, TET_Z, TET_O, TET_J, TET_L, TET_O, TET_L, TET_J, TET_T, TET_Z, TET_S};
+    for (unsigned i = 0; i < sizeof order / sizeof order[0]; i++) {
+        t.type = order[i];
+        t.rot = 0;
+        t.x = 3;
+        t.y = 0;
+        play_planned(&t);
+        CHECK(!t.over);
+    }
+    for (int r = 0; r < TET_H; r++) CHECK_EQ(t.board[r][TET_W - 1], 0);
+    CHECK(t.lines <= 1);
+}
+
+TEST(tetris_plan_plays_long_games_with_tetrises) {
+    // Four games of 250 pieces. The planner tops out in about one game in a
+    // hundred of 500 pieces on the seeds tried, so allow one of the four.
+    int survived = 0, pieces = 0, tetrises = 0;
+    uint32_t lines = 0;
+    for (int game = 0; game < 4; game++) {
+        tetris_reset(&t);
+        int p = 0;
+        for (; p < 250; p++) {
+            if (play_planned(&t) == 4) tetrises++;
+            if (t.over || !tetris_spawn(&t)) break;
+        }
+        survived += p == 250;
+        pieces += p;
+        lines += t.lines;
+    }
+    CHECK(survived >= 3);
+    // About 0.39 lines a piece, and on average half of them in fours.
+    CHECK(lines * 100 >= (uint32_t)pieces * 33);
+    CHECK(tetrises * 4 * 4 >= (int)lines);
+}
+
+// Runs Tetris in attract mode for `ms` at the frame loop's 60 a second,
+// turning the autopilot's held buttons into edges as main.c does.
+static uint32_t attract_frames, attract_ab, attract_double;
+static void run_attract(uint32_t ms, uint8_t (*override)(void)) {
+    static uint8_t prev;
+    for (uint32_t t_ms = 0, k = 0; t_ms < ms; k++) {
+        uint32_t dt = k % 3 == 2 ? 17 : 16;
+        t_ms += dt;
+        uint8_t held = override ? override() : app_tetris.autopilot(dt);
+        if ((held & (BTN_A | BTN_B)) == (BTN_A | BTN_B)) attract_ab++;
+        if (held & prev) attract_double++; // a button held two frames running
+        input_t in = {held, (uint8_t)(held & ~prev), (uint8_t)(prev & ~held)};
+        prev = held;
+        app_tetris.frame(&in, dt);
+        attract_frames++;
+    }
+}
+
+TEST(tetris_autopilot_plays_attract_mode_well) {
+    gfx_set_orientation(ORIENT_PORTRAIT);
+    app_tetris.enter();
+    app_tetris.attract();
+    attract_ab = attract_double = 0;
+    run_attract(25000, NULL); // one turn in the attract rotation
+    const tetris_attract_stats_t *s = tetris_attract_stats();
+    CHECK(s->lines >= 4);
+    // A piece every 0.6 to 0.9 seconds: taps at a person's pace, not a blur.
+    CHECK(s->pieces >= 25 && s->pieces <= 45);
+    run_attract(155000, NULL); // three minutes in all
+    // Seeds tried gave 113 to 144 lines and 8 to 23 fours in three minutes.
+    CHECK(s->lines >= 90);
+    CHECK(s->tetrises >= 5);
+    CHECK_EQ(attract_ab, 0);
+    CHECK_EQ(attract_double, 0);
+    if (app_tetris.leave) app_tetris.leave();
+}
+
+// Hard drops every other frame, which tops out the stack in a few seconds.
+static uint8_t drop_everything(void) { return attract_frames % 2 ? BTN_B : 0; }
+
+TEST(tetris_autopilot_starts_again_two_seconds_after_game_over) {
+    gfx_set_orientation(ORIENT_PORTRAIT);
+    app_tetris.enter();
+    app_tetris.attract();
+    const tetris_attract_stats_t *s = tetris_attract_stats();
+    for (int i = 0; i < 2000 && s->games == 0; i++) run_attract(16, drop_everything);
+    CHECK_EQ(s->games, 1);
+    // The game over panel stays up for two seconds, then the next game starts
+    // and the autopilot plays it.
+    uint32_t pieces = s->pieces;
+    run_attract(1900, NULL);
+    CHECK_EQ(s->pieces, pieces);
+    run_attract(3000, NULL);
+    CHECK(s->pieces > pieces);
+    CHECK_EQ(s->games, 1);
+}

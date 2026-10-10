@@ -1112,6 +1112,39 @@ static bool pet_frame(const input_t *in, uint32_t dt) {
     return true;
 }
 
+// Attract mode borrows the pet slot for a demo egg three seconds from
+// hatching, feeds and plays with the baby, then hands the real pet back.
+static pet_t real_pet;
+static uint32_t demo_ms;
+
+static void pet_attract(void) {
+    pet_t *p = pet_saved();
+    real_pet = *p;
+    pet_init(p);
+    p->age_s = PET_HATCH_S - 3;
+    p->need[NEED_HUNGER] = PET_PCT(45);
+    p->need[NEED_HAPPY] = PET_PCT(40);
+    sel = ACT_FEED;
+    demo_ms = 0;
+    pet_enter();
+}
+
+static uint8_t pet_autopilot(uint32_t dt) {
+    uint32_t before = demo_ms;
+    demo_ms += dt;
+    // A one-frame press as each moment goes by: feed, move to Play, play.
+    static const struct { uint32_t at; uint8_t button; } steps[] = {
+        {7000, BTN_X}, {10000, BTN_Y}, {10700, BTN_X},
+    };
+    for (unsigned i = 0; i < sizeof steps / sizeof steps[0]; i++)
+        if (before < steps[i].at && demo_ms >= steps[i].at) return steps[i].button;
+    return 0;
+}
+
+static void pet_leave(void) {
+    if (g_attract) *pet_saved() = real_pet;
+}
+
 const app_t app_pet = {
     .name = "Virtual Pet",
     .orient = ORIENT_LANDSCAPE,
@@ -1120,4 +1153,7 @@ const app_t app_pet = {
     .enter = pet_enter,
     .frame = pet_frame,
     .background = pet_background,
+    .leave = pet_leave,
+    .attract = pet_attract,
+    .autopilot = pet_autopilot,
 };

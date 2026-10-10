@@ -94,6 +94,95 @@ bool flappy_hits_ground(const flappy_t *f) { return (f->y >> 8) + FLAP_BIRD_HH >
 
 int flappy_medal(uint32_t score) { return score >= 40 ? 3 : score >= 20 ? 2 : score >= 10 ? 1 : 0; }
 
+// The autopilot's first instinct: hover in the lower half of the next gap.
+// A flap rises about 23 pixels, so the bird swings between 13 pixels below
+// the middle and 10 above it, nearer the lower lip, which leaves less to
+// fall when the gap after is lower. Far below, it flaps again before the
+// last flap has worn off, to climb to a high gap in the short stretch
+// between two pipes.
+static bool hover_flap(const flappy_t *f, int aim) {
+    int next = -1;
+    for (int i = 0; i < FLAP_PIPES; i++) {
+        // A pipe stops mattering once the bird's tail is past its cap.
+        if ((f->pipe[i].x >> 8) + FLAP_PIPE_W + 2 < FLAP_BIRD_X - FLAP_BIRD_HW) continue;
+        if (next < 0 || f->pipe[i].x < f->pipe[next].x) next = i;
+    }
+    int target = (next >= 0 ? f->pipe[next].gap_y + FLAP_GAP / 2 : FLAP_GROUND_Y / 2) + 13 + aim;
+    int below = (f->y >> 8) - target;
+    return below > 0 && f->vy > (below > 25 ? -110 : -40) * 256;
+}
+
+// The look ahead: 1.2 s, as 25 choices to flap or glide 48 ms apart. The
+// pipes are moved by hand rather than with flappy_scroll, which would draw
+// new gaps from the random numbers.
+#define LOOK_STEP_MS 16
+#define LOOK_EVERY 3
+#define LOOK_DEPTH 25
+#define LOOK_NODES 150 // a bound on the search; 25 or so is usual
+
+static void look_at(flappy_t *sim, const flappy_t *f, int steps) {
+    int32_t moved = FLAP_SPEED * 256 * (steps * LOOK_STEP_MS) / 1000;
+    for (int p = 0; p < FLAP_PIPES; p++) sim->pipe[p].x = f->pipe[p].x - moved;
+}
+
+// True when some run of flaps and glides, starting with a flap now or not,
+// keeps the bird clear of everything for the whole look ahead. A depth-first
+// search that tries the hover rule's choice first, so the usual answer comes
+// in a straight line, kept on a small array instead of the call stack.
+static bool way_through(const flappy_t *f, bool flap_now, int aim) {
+    struct { int32_t y, vy; int8_t tries; bool flap; } st[LOOK_DEPTH + 1];
+    flappy_t sim = *f;
+    int nodes = 0, d = 0;
+    st[0].y = f->y;
+    st[0].vy = f->vy;
+    st[0].flap = flap_now;
+    st[0].tries = 1; // the first choice is fixed
+    for (;;) {
+        if (d == LOOK_DEPTH) return true;
+        if (st[d].tries > 2) { // both ways failed here: back up
+            if (d == 0) return false;
+            d--;
+            if (d == 0 || st[d].tries == 2) {
+                st[d].tries = 3;
+                continue;
+            }
+            st[d].flap = !st[d].flap;
+            st[d].tries = 2;
+            continue;
+        }
+        if (++nodes > LOOK_NODES) return false;
+        sim.y = st[d].y;
+        sim.vy = st[d].vy;
+        if (st[d].flap) flappy_flap(&sim);
+        bool hit = false;
+        for (int i = 1; i <= LOOK_EVERY && !hit; i++) {
+            look_at(&sim, f, d * LOOK_EVERY + i);
+            flappy_fall(&sim, LOOK_STEP_MS);
+            hit = flappy_hits_ground(&sim) || flappy_hits_pipe(&sim);
+        }
+        if (hit) {
+            if (d == 0 || st[d].tries == 2) st[d].tries = 3;
+            else st[d].flap = !st[d].flap, st[d].tries = 2;
+            continue;
+        }
+        d++;
+        st[d].y = sim.y;
+        st[d].vy = sim.vy;
+        st[d].flap = hover_flap(&sim, aim);
+        st[d].tries = 1;
+    }
+}
+
+bool flappy_should_flap(const flappy_t *f, int aim, bool look_ahead) {
+    if (!look_ahead) return hover_flap(f, aim);
+    // The hover rule decides, and the look ahead overrules it, as a player
+    // judges the next gap or two: no flap that leaves no way through when
+    // gliding would (a big drop to a low gap needs the fall started in time),
+    // and a flap it did not want when gliding on leaves no way through.
+    if (hover_flap(f, aim)) return way_through(f, true, aim) || !way_through(f, false, aim);
+    return !way_through(f, false, aim) && way_through(f, true, aim);
+}
+
 // ---------------------------------------------------------------- art
 
 // The bird, 17x12. k outline, y yellow, l highlight, o orange belly,
@@ -413,6 +502,7 @@ static bool new_best;
 static uint32_t state_ms, anim_ms, flash_ms, led_ms;
 static uint32_t idle_scroll; // keeps the ground moving before the game starts
 static uint8_t led_rgb[3];
+static flappy_attract_stats_t stats;
 
 static void led_flash(uint8_t r, uint8_t g, uint8_t b, uint32_t ms) {
     led_rgb[0] = r;
@@ -445,6 +535,10 @@ static void crash(void) {
 static void game_over(void) {
     state = ST_OVER;
     state_ms = 0;
+    stats.games++;
+    stats.pipes += game.score;
+    if (game.score > stats.best) stats.best = game.score;
+    if (stats.games == 1 || game.score < stats.fewest) stats.fewest = game.score;
     if (game.score > g_save.flappy_best) {
         g_save.flappy_best = game.score;
         new_best = true;
@@ -590,6 +684,75 @@ static bool flappy_frame(const input_t *in, uint32_t dt) {
     return true;
 }
 
+// ---------------------------------------------------------------- attract mode
+
+// The autopilot flies each run well for a long stretch, then at a score
+// picked for that run (20 to 47, so the panel shows silver and gold medals
+// and now and then a new best) it stops looking ahead and aims for one lip
+// of the next pipe: a misjudged swoop that ends the run. The game over panel
+// shows for two seconds and GET READY for a moment before it goes again.
+#define OVER_SHOW_MS 2000
+#define READY_SHOW_MS 700
+#define SLIP_PX 24
+
+static struct {
+    bool tapped;       // a button was held last frame, so release it now
+    uint32_t crash_at; // the score this run ends at
+    int slip;          // how far off it aims once there, up or down
+    uint32_t rng;
+} pilot;
+
+static uint32_t pilot_rand(uint32_t n) {
+    pilot.rng ^= pilot.rng << 13;
+    pilot.rng ^= pilot.rng >> 17;
+    pilot.rng ^= pilot.rng << 5;
+    return pilot.rng % n;
+}
+
+static void new_run(void) {
+    pilot.crash_at = 20 + pilot_rand(28);
+    pilot.slip = pilot_rand(2) ? SLIP_PX : -SLIP_PX;
+}
+
+static void flappy_attract(void) {
+    memset(&pilot, 0, sizeof pilot);
+    memset(&stats, 0, sizeof stats);
+    pilot.rng = hal_random() | 1u;
+    new_run();
+    // Straight into the game, as if the first button had been pressed.
+    state = ST_PLAY;
+    state_ms = 0;
+    first_ready = false;
+    flappy_flap(&game);
+}
+
+static uint8_t flappy_autopilot(uint32_t dt) {
+    if (pilot.tapped) { // one frame down, then up, so every flap is a fresh press
+        pilot.tapped = false;
+        return 0;
+    }
+    switch (state) {
+    case ST_READY:
+        if (state_ms < READY_SHOW_MS) return 0;
+        break;
+    case ST_PLAY: {
+        bool slipping = game.score >= pilot.crash_at;
+        if (!flappy_should_flap(&game, slipping ? pilot.slip : 0, !slipping)) return 0;
+        break;
+    }
+    case ST_OVER:
+        if (state_ms < OVER_SHOW_MS) return 0;
+        new_run();
+        break;
+    default:
+        return 0;
+    }
+    pilot.tapped = true;
+    return BTN_A;
+}
+
+const flappy_attract_stats_t *flappy_attract_stats(void) { return &stats; }
+
 const app_t app_flappy = {
     .name = "Flappy Bird",
     .orient = ORIENT_PORTRAIT,
@@ -597,4 +760,6 @@ const app_t app_flappy = {
     .fps = 60,
     .enter = flappy_enter,
     .frame = flappy_frame,
+    .attract = flappy_attract,
+    .autopilot = flappy_autopilot,
 };
