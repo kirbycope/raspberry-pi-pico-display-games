@@ -10,7 +10,7 @@ the repository) is the original, and is described at the end of this page.
 
 ## C version
 
-<img src="preview.png" width="640" alt="Pico Display Games">
+![Pico Display Games](preview.png)
 
 | App | What it is |
 | --- | --- |
@@ -62,6 +62,8 @@ instructions instead.
 
 ### Using it
 
+![The launcher](c/docs/menu.png)
+
 The menu works like the MicroPython one: each button's job is printed on the coloured bar beside
 it.
 
@@ -87,14 +89,14 @@ Everywhere else:
 
 #### Bad Apple
 
-<img src="c/docs/bad_apple.png" width="360" alt="Bad Apple">
+![Bad Apple](c/docs/previews/bad_apple.png)
 
 A pauses, B goes back to the start, X skips ahead 10 seconds and Y inverts black and white. The LED
 glows with how much of the picture is white. When it ends it starts again.
 
 #### Tetris
 
-<img src="c/docs/tetris.png" width="180" alt="Tetris">
+![Tetris](c/docs/previews/tetris.png)
 
 Y moves left, X moves right (hold either to slide), A rotates and B drops. It uses the standard
 7-piece bag, wall kicks, a ghost piece and the classic scoring, and speeds up every 10 lines. Your
@@ -102,14 +104,14 @@ best score is saved.
 
 #### Flappy Bird
 
-<img src="c/docs/flappy.png" width="180" alt="Flappy Bird">
+![Flappy Bird](c/docs/previews/flappy.png)
 
 Any button flaps. Score a bronze medal at 10 pipes, silver at 20 and gold at 40. The LED blinks
 green for a point and red for a crash. Your best score is saved.
 
 #### Virtual Pet
 
-<img src="c/docs/pet.png" width="360" alt="Virtual Pet">
+![Virtual Pet](c/docs/previews/pet.png)
 
 Raise a dragon. It hatches from its egg after 2 minutes, grows into a baby, and 20 minutes later
 becomes a big red dragon. It lives in a cosy room whose window follows a day and night cycle.
@@ -124,7 +126,7 @@ sick. It never dies.
 
 #### Pomodoro
 
-<img src="c/docs/pomodoro.png" width="360" alt="Pomodoro">
+![Pomodoro](c/docs/previews/pomodoro.png)
 
 Focus for 25 minutes and take a 5 minute break. After every fourth focus the break is 15 minutes.
 
@@ -137,7 +139,7 @@ Focus for 25 minutes and take a 5 minute break. After every fourth focus the bre
 
 #### Game of Life
 
-<img src="c/docs/life.png" width="360" alt="Game of Life">
+![Game of Life](c/docs/previews/life.png)
 
 - A plays and pauses, and B starts a new random soup.
 - X steps one generation when paused. While running, it switches between 5, 10, 20 and 30
@@ -150,7 +152,7 @@ trail. When the world dies out or settles into a loop, a new soup replaces it.
 
 #### Bouncing DVD
 
-<img src="c/docs/dvd.png" width="360" alt="Bouncing DVD logo">
+![Bouncing DVD](c/docs/previews/dvd.png)
 
 The logo changes colour at every wall. A corner hit sets off confetti and adds to a lifetime count.
 A speeds it up, B slows it down, X sends it in a new direction and Y hides the count. The LED glows
@@ -158,7 +160,7 @@ the logo's colour.
 
 #### Pico Quest
 
-<img src="c/docs/rpg_battle.png" width="180" alt="Pico Quest battle"> <img src="c/docs/rpg_camp.png" width="180" alt="Pico Quest camp"> <img src="c/docs/rpg_dragon.png" width="180" alt="Pico Quest dragon">
+![Pico Quest](c/docs/previews/pico_quest.png)
 
 Fight your way through the Whispering Forest, the Old Ruins and the Dragon's Lair.
 
