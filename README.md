@@ -12,6 +12,9 @@ the repository) is the original, and is described at the end of this page.
 
 ![Pico Display Games](preview.png)
 
+**[Play it in your browser](https://kirbycope.github.io/raspberry-pi-pico-display-games/)**: the same C code, compiled to
+WebAssembly, on a drawn Display Pack you can click, tap or play with the A, B, X and Y keys.
+
 | App | What it is |
 | --- | --- |
 | Bad Apple | The shadow-art video at 180x135 and 30 frames a second, in black and white. |
@@ -48,17 +51,14 @@ the build at an older one with `export SDKROOT=/Library/Developer/CommandLineToo
 
 ### Bad Apple's frames
 
-The video is not in this repository, and neither are the frames made from it. Encode your own copy
-before building, and the build links the frames in:
+The video's frames are already encoded in `c/data/bad_apple.bin` (1.4 MB), so Bad Apple builds in
+by default. They are coded as run lengths with a per-frame choice of predictor, so the whole 3
+minutes 39 seconds fits on a 2 MB Pico beside everything else. To encode them again from a copy of
+the video (this needs ffmpeg and numpy):
 
 ```bash
 python c/tools/encode_bad_apple.py path/to/bad_apple.mp4 --verify
 ```
-
-That needs ffmpeg and numpy, and writes `c/data/bad_apple.bin` (about 1.4 MB, git-ignored). The
-frames are coded as run lengths with a per-frame choice of predictor, so the whole 3 minutes 39
-seconds fits on a 2 MB Pico beside everything else. Without the file, the app shows these
-instructions instead.
 
 ### Using it
 
@@ -242,6 +242,17 @@ Playing it:
 - **The LED:** the strip under the screen glows its colour.
 - **Saves:** kept in `pdg_save.bin` in the folder you run it from.
 - **After editing the code:** rebuild with `cmake --build build-host`.
+
+The web version is the simulator built with [Emscripten](https://emscripten.org/). `c/web/shell.html` is the page
+around it, and GitHub Actions publishes it to GitHub Pages on every push to `master`
+(`.github/workflows/web.yml`). To build it yourself:
+
+```bash
+cd c
+emcmake cmake -S . -B build-web -DPDG_WEB=ON
+cmake --build build-web
+python3 -m http.server -d build-web    # then open http://localhost:8000
+```
 
 The simulator can also run headless from a script on a virtual clock, which is how the screenshots
 on this page were made. See the comment at the top of

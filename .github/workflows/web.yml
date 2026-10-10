@@ -1,0 +1,46 @@
+# Builds the web version (c/web, Emscripten) and publishes it to GitHub Pages.
+name: Web version
+
+on:
+  push:
+    branches: [master]
+    paths: ["c/**", ".github/workflows/web.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+      - name: Build
+        run: |
+          cd c
+          emcmake cmake -S . -B build-web -DPDG_WEB=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-web
+          mkdir -p ../site
+          cp build-web/index.html build-web/index.js build-web/index.wasm build-web/index.data ../site/
+          cp -r build-web/fonts ../site/
+          cp ../preview.png ../site/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

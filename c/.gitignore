@@ -1,7 +1,5 @@
 # Built firmware and simulator output
 /build*/
-# Bad Apple frames are made locally from the video, never committed
-/data/
 # Simulator save file and scripted screenshots (the scripts are kept)
 pdg_save.bin
 /shots/*.bmp

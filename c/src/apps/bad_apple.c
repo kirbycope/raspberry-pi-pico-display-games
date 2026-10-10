@@ -3,18 +3,21 @@
 //
 // A: pause  B: back to the start  X: skip ahead 10 seconds  Y: invert
 //
-// The frames are not in this repository. tools/encode_bad_apple.py makes
-// data/bad_apple.bin from a copy of the video, and the next build links it
-// in; without it this app explains how.
+// The frames are data/bad_apple.bin, made by tools/encode_bad_apple.py from
+// the video and linked in by the build; without the file this app explains
+// how to make it.
 #include "bad_apple.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../core/app.h"
 #include "../core/hal.h"
 
+#ifndef PDG_WEB
 extern const uint8_t bad_apple_data[], bad_apple_data_end[];
+#endif
 
 static uint32_t read_u32(const uint8_t *p) { return (uint32_t)p[0] | p[1] << 8 | p[2] << 16 | (uint32_t)p[3] << 24; }
 static uint16_t read_u16(const uint8_t *p) { return (uint16_t)(p[0] | p[1] << 8); }
@@ -142,7 +145,25 @@ static bool have_video, paused, inverted;
 static uint32_t play_ms, hint_ms;
 
 static void ba_enter(void) {
+#ifdef PDG_WEB
+    // The page preloads the frames as a file; read it once and keep it.
+    static uint8_t *web_data;
+    static long web_len;
+    if (!web_data) {
+        FILE *f = fopen("/bad_apple.bin", "rb");
+        if (f) {
+            fseek(f, 0, SEEK_END);
+            web_len = ftell(f);
+            fseek(f, 0, SEEK_SET);
+            web_data = malloc((size_t)web_len);
+            if (web_data && fread(web_data, 1, (size_t)web_len, f) != (size_t)web_len) web_len = 0;
+            fclose(f);
+        }
+    }
+    have_video = web_data && ba_open(&video, web_data, (size_t)web_len);
+#else
     have_video = ba_open(&video, bad_apple_data, (size_t)(bad_apple_data_end - bad_apple_data));
+#endif
     paused = false;
     play_ms = 0;
     hint_ms = 3000;

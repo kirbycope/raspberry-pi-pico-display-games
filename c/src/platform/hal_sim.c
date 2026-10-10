@@ -16,6 +16,11 @@
 // PDG_APP=<name> opens that app at start, PDG_SAVE=<file> keeps the save data
 // in a file (scripted runs otherwise start from nothing), PDG_SEED=<n> seeds
 // the random numbers, PDG_SHOT_SCALE=<n> enlarges the screenshots.
+//
+// Built with Emscripten it is the web version (web/index.html): the page
+// draws the board around the canvas and calls web_button() for its on-screen
+// buttons, the LED and the orientation are handed to the page, the save goes
+// to the browser's localStorage, and X in the menu reloads the page.
 // PDG_RECORD=<file> appends every presented frame to a file for the trailer
 // tools: per frame a 16-byte header (ms, width, height, buttons, LED r g b)
 // then width*height RGB565 pixels, little-endian. PDG_RECORD_FROM and
@@ -32,12 +37,20 @@
 #ifdef PDG_SDL
 #include <SDL.h>
 #endif
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 #define SCALE 3
+#ifdef __EMSCRIPTEN__
+#define LED_STRIP 0 // the page draws the LED
+#else
 #define LED_STRIP 6
+#endif
 
 static bool running = true;
 static uint8_t keys_down, script_down;
+static uint8_t keys_latched; // pressed since the last read, so a tap shorter than a frame still counts
 static uint8_t led[3];
 static orient_t cur_orient = ORIENT_LANDSCAPE;
 static uint32_t rng_state = 0x12345678u;
@@ -144,7 +157,18 @@ static void script_step(void) {
 }
 
 #ifdef PDG_SDL
+#ifdef __EMSCRIPTEN__
+// The page's on-screen buttons call this: mask is BTN_ bits, down 1 or 0.
+EMSCRIPTEN_KEEPALIVE void web_button(int mask, int down) {
+    if (down) keys_down |= (uint8_t)mask, keys_latched |= (uint8_t)mask;
+    else keys_down &= (uint8_t)~mask;
+}
+#endif
+
 static void window_resize(void) {
+#ifdef __EMSCRIPTEN__
+    EM_ASM({ if (window.pdgOrientation) window.pdgOrientation($0); }, cur_orient == ORIENT_PORTRAIT);
+#endif
     int w = (cur_orient == ORIENT_LANDSCAPE ? SCREEN_LONG : SCREEN_SHORT) * SCALE;
     int h = (cur_orient == ORIENT_LANDSCAPE ? SCREEN_SHORT : SCREEN_LONG) * SCALE;
     SDL_SetWindowSize(window, w, h + LED_STRIP * SCALE);
@@ -163,9 +187,11 @@ static void pump_events(void) {
             case SDLK_b: b = BTN_B; break;
             case SDLK_x: b = BTN_X; break;
             case SDLK_y: b = BTN_Y; break;
+#ifndef __EMSCRIPTEN__
             case SDLK_ESCAPE: running = false; break;
+#endif
             }
-            if (e.type == SDL_KEYDOWN) keys_down |= b;
+            if (e.type == SDL_KEYDOWN) keys_down |= b, keys_latched |= b;
             else keys_down &= (uint8_t)~b;
         }
     }
@@ -229,7 +255,11 @@ void hal_sleep_ms(uint32_t ms) {
     }
 #ifdef PDG_SDL
     pump_events();
+#ifdef __EMSCRIPTEN__
+    emscripten_sleep(ms); // hands the browser back its frame
+#else
     SDL_Delay(ms);
+#endif
 #endif
 }
 
@@ -241,7 +271,9 @@ uint8_t hal_buttons(void) {
 #ifdef PDG_SDL
     pump_events();
 #endif
-    return keys_down;
+    uint8_t b = keys_down | keys_latched;
+    keys_latched = 0;
+    return b;
 }
 
 uint8_t hal_physical_buttons(void) { return hal_buttons(); }
@@ -258,7 +290,13 @@ void hal_remote_reply(const char *l) {
     if (script) printf("sim: %6u ms remote: %s\n", virtual_ms, l);
 }
 
-void hal_led(uint8_t r, uint8_t g, uint8_t b) { led[0] = r, led[1] = g, led[2] = b; }
+void hal_led(uint8_t r, uint8_t g, uint8_t b) {
+#ifdef __EMSCRIPTEN__
+    if (r != led[0] || g != led[1] || b != led[2])
+        EM_ASM({ if (window.pdgLed) window.pdgLed($0, $1, $2); }, r, g, b);
+#endif
+    led[0] = r, led[1] = g, led[2] = b;
+}
 void hal_backlight(uint8_t level) { (void)level; }
 uint32_t hal_random(void) {
     rng_state ^= rng_state << 13;
@@ -266,7 +304,12 @@ uint32_t hal_random(void) {
     rng_state ^= rng_state << 5;
     return rng_state;
 }
-void hal_reset(void) { running = false; }
+void hal_reset(void) {
+#ifdef __EMSCRIPTEN__
+    EM_ASM({ location.reload(); });
+#endif
+    running = false;
+}
 
 void hal_set_orientation(orient_t o, bool flip) {
     (void)flip;
@@ -306,7 +349,25 @@ void hal_present(void) {
 
 void hal_wait_present(void) {}
 
+#ifdef __EMSCRIPTEN__
+// The save lives in localStorage as hex, under one key.
+EM_JS(int, web_load, (uint8_t *data, int len), {
+    var hex = localStorage.getItem("pico-display-games-save");
+    if (!hex || hex.length != len * 2) return 0;
+    for (var i = 0; i < len; i++) HEAPU8[data + i] = parseInt(hex.substr(i * 2, 2), 16);
+    return 1;
+});
+EM_JS(void, web_store, (const uint8_t *data, int len), {
+    var hex = "";
+    for (var i = 0; i < len; i++) hex += (HEAPU8[data + i] + 256).toString(16).substr(1);
+    try { localStorage.setItem("pico-display-games-save", hex); } catch (e) {}
+});
+#endif
+
 bool hal_load(void *data, size_t len) {
+#ifdef __EMSCRIPTEN__
+    if (!script) return web_load(data, (int)len) != 0;
+#endif
     if (!save_path) {
         if (memory_save_valid) memcpy(data, memory_save, len);
         return memory_save_valid;
@@ -319,6 +380,12 @@ bool hal_load(void *data, size_t len) {
 }
 
 bool hal_store(const void *data, size_t len) {
+#ifdef __EMSCRIPTEN__
+    if (!script) {
+        web_store(data, (int)len);
+        return true;
+    }
+#endif
     if (!save_path) {
         memcpy(memory_save, data, len);
         memory_save_valid = true;

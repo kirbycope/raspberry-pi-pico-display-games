@@ -15,10 +15,10 @@ the same works under the same licences.
 
 ## Bad Apple!!
 
-The video is not included in this repository, and neither are the frames made from it. Bad Apple!!
-is a song by ZUN from the Touhou Project, arranged by Alstroemeria Records with vocals by nomico; the
-shadow-art video is by Anira. `c/tools/encode_bad_apple.py` turns a copy you already have into
-`c/data/bad_apple.bin`, which is git-ignored.
+Bad Apple!! is a song by ZUN from the Touhou Project, arranged by Alstroemeria Records with vocals by
+nomico. The shadow-art video is by Anira. `c/data/bad_apple.bin` holds that video's frames, reduced to
+180x135 black and white and encoded by `c/tools/encode_bad_apple.py`; the sound is not included. This
+is a non-commercial fan project.
 
 ## Trailer
 

@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="preview.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Pico Display Games</title>
+<meta name="description" content="Eight games and toys written in C for a Raspberry Pi Pico and Pimoroni Pico Display Pack, playable in the browser.">
+<style>
+  @font-face { font-family: "Kenney Blocks"; src: url("fonts/Kenney Blocks.ttf"); }
+  @font-face { font-family: "Kenney Mini"; src: url("fonts/Kenney Mini.ttf"); }
+  :root {
+    --bg: #12111c; --bg2: #262040; --text: #e8e6f2; --muted: #9a97b0; --accent: #9b82ff;
+    --pcb: #17171b; --pcb-edge: #2c2c34; --gold: #c4a050; --cap: #ece2cc; --cap-down: #ffd678;
+    --led: #000;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: radial-gradient(ellipse at 50% 40%, var(--bg2), var(--bg) 70%) fixed;
+    color: var(--text); font-family: "Kenney Mini", ui-monospace, monospace;
+    display: flex; flex-direction: column; align-items: center; padding: 16px;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation;
+  }
+  h1 { font-family: "Kenney Blocks", sans-serif; font-weight: normal; color: var(--accent);
+       letter-spacing: 2px; margin: 8px 0 2px; font-size: clamp(22px, 5vw, 40px); text-align: center; }
+  .sub { color: var(--muted); margin: 0 0 18px; font-size: 15px; text-align: center; }
+
+  /* The board. Landscape: A and B left of the screen, X and Y right of it.
+     Upright (USB at the top): B and A above the screen, Y and X below it. */
+  .board {
+    --s: min(2.6px, calc((100vw - 32px - 112px) / 240));
+    position: relative; background: var(--pcb); border: 2px solid var(--pcb-edge);
+    border-radius: calc(var(--s) * 7); box-shadow: 0 18px 40px rgba(0,0,0,.55);
+    display: grid; align-items: center; justify-items: center;
+    --btn: max(calc(var(--s) * 22), 40px); /* big enough for a thumb on a small screen */
+    grid-template-columns: max(calc(var(--s) * 58), 56px) auto max(calc(var(--s) * 58), 56px);
+    grid-template-areas: "a screen x" "b screen y"; padding: calc(var(--s) * 16) 0;
+  }
+  .board.portrait {
+    --s: min(2.6px, calc((100vw - 32px) / 170), calc((100vh - 200px) / 360));
+    grid-template-columns: 1fr 1fr; grid-template-rows: calc(var(--s) * 58) auto calc(var(--s) * 58);
+    grid-template-areas: "b a" "screen screen" "y x"; padding: 0 calc(var(--s) * 16);
+  }
+  .hole { position: absolute; width: calc(var(--s) * 6.4); height: calc(var(--s) * 6.4); border-radius: 50%;
+          background: radial-gradient(circle, #08080a 45%, var(--gold) 50%); }
+  .hole.tl { top: calc(var(--s) * 3.5); left: calc(var(--s) * 3.5); }
+  .hole.tr { top: calc(var(--s) * 3.5); right: calc(var(--s) * 3.5); }
+  .hole.bl { bottom: calc(var(--s) * 3.5); left: calc(var(--s) * 3.5); }
+  .hole.br { bottom: calc(var(--s) * 3.5); right: calc(var(--s) * 3.5); }
+  .glass { grid-area: screen; background: #060608; padding: calc(var(--s) * 3); border-radius: calc(var(--s) * 2); line-height: 0; }
+  canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges;
+           width: calc(var(--s) * 240); height: calc(var(--s) * 135); outline: none; }
+  .portrait canvas { width: calc(var(--s) * 135); height: calc(var(--s) * 240); }
+  .btn {
+    position: relative; width: var(--btn); height: var(--btn); border-radius: 4px;
+    background: #aaaab0; border: 1px solid #78787f; cursor: pointer; touch-action: none; padding: 0;
+  }
+  .btn::before { content: ""; position: absolute; inset: 18%; border-radius: 50%; background: var(--cap);
+                 border: 1px solid #968c78; transition: transform .03s; }
+  .btn.down::before { background: var(--cap-down); transform: translateY(1px); }
+  .btn span { position: absolute; width: calc(var(--s) * 10); height: calc(var(--s) * 10); border-radius: 50%;
+              background: #e1e1e6; color: #141418; font-size: calc(var(--s) * 7); line-height: calc(var(--s) * 10);
+              text-align: center; font-family: "Kenney Mini", monospace; }
+  .btn.down span { background: var(--cap-down); }
+  /* Letters beside each button: above or below in landscape, outside in portrait. */
+  .board:not(.portrait) .a span, .board:not(.portrait) .x span { left: calc(var(--s) * 6); top: calc(var(--s) * -15); }
+  .board:not(.portrait) .b span, .board:not(.portrait) .y span { left: calc(var(--s) * 6); bottom: calc(var(--s) * -15); }
+  .portrait .b span, .portrait .y span { left: calc(var(--s) * -15); top: calc(var(--s) * 6); }
+  .portrait .a span, .portrait .x span { right: calc(var(--s) * -15); top: calc(var(--s) * 6); }
+  .a { grid-area: a; } .b { grid-area: b; } .x { grid-area: x; } .y { grid-area: y; }
+  .led { position: absolute; width: calc(var(--s) * 6); height: calc(var(--s) * 6); background: #e6e6e1;
+         box-shadow: 0 0 calc(var(--s) * 10) calc(var(--s) * 4) var(--led); transition: box-shadow .05s; }
+  .board:not(.portrait) .led { right: calc(var(--s) * 26); top: calc(50% - var(--s) * 3); }
+  .portrait .led { bottom: calc(var(--s) * 26); left: calc(50% - var(--s) * 3); }
+
+  .help { max-width: 640px; color: var(--muted); font-size: 14px; line-height: 1.7; margin-top: 22px; text-align: center; }
+  .help b { color: var(--text); font-weight: normal; }
+  .help a { color: var(--accent); }
+  #status { position: absolute; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+  <h1>PICO DISPLAY GAMES</h1>
+  <p class="sub">Eight games and toys for a Raspberry Pi Pico, running here in your browser</p>
+
+  <div class="board" id="board">
+    <i class="hole tl"></i><i class="hole tr"></i><i class="hole bl"></i><i class="hole br"></i>
+    <button class="btn a" data-mask="1" aria-label="A"><span>A</span></button>
+    <button class="btn b" data-mask="2" aria-label="B"><span>B</span></button>
+    <div class="glass"><canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas></div>
+    <button class="btn x" data-mask="4" aria-label="X"><span>X</span></button>
+    <button class="btn y" data-mask="8" aria-label="Y"><span>Y</span></button>
+    <i class="led"></i>
+    <div id="status">Loading...</div>
+  </div>
+
+  <p class="help">
+    Press the buttons on the board, or the <b>A</b>, <b>B</b>, <b>X</b> and <b>Y</b> keys.<br>
+    In the menu A and B move and Y opens an app. <b>Hold A and B for a second</b> to go back.<br>
+    Leave the menu alone for 30 seconds and the games play themselves.<br>
+    The same C code runs on the real thing: a Pico and a Pimoroni Pico Display Pack.<br>
+    <a href="https://github.com/kirbycope/raspberry-pi-pico-display-games">Source on GitHub</a>
+  </p>
+
+<script>
+  const board = document.getElementById("board");
+  const buttons = [...document.querySelectorAll(".btn")];
+  const byKey = { a: 1, b: 2, x: 4, y: 8 };
+
+  // Called from hal_sim.c.
+  window.pdgOrientation = portrait => board.classList.toggle("portrait", !!portrait);
+  window.pdgLed = (r, g, b) => {
+    const k = v => Math.min(255, v * 4);
+    const on = r + g + b > 3;
+    board.style.setProperty("--led", on ? `rgba(${k(r)},${k(g)},${k(b)},.9)` : "transparent");
+  };
+
+  function press(mask, down) {
+    if (Module._web_button) Module._web_button(mask, down ? 1 : 0);
+    buttons.forEach(b => { if (+b.dataset.mask === mask) b.classList.toggle("down", down); });
+  }
+  for (const b of buttons) {
+    const mask = +b.dataset.mask;
+    b.addEventListener("pointerdown", e => { e.preventDefault(); b.setPointerCapture(e.pointerId); press(mask, true); });
+    for (const t of ["pointerup", "pointercancel", "lostpointercapture"])
+      b.addEventListener(t, () => press(mask, false));
+  }
+  // SDL reads the keys itself; this only shows them going down on the board.
+  addEventListener("keydown", e => { const m = byKey[e.key.toLowerCase()]; if (m) buttons.forEach(b => +b.dataset.mask === m && b.classList.add("down")); });
+  addEventListener("keyup", e => { const m = byKey[e.key.toLowerCase()]; if (m) buttons.forEach(b => +b.dataset.mask === m && b.classList.remove("down")); });
+
+  var Module = {
+    canvas: document.getElementById("canvas"),
+    onRuntimeInitialized: () => document.getElementById("status").remove(),
+    print: t => console.log(t), printErr: t => console.warn(t),
+  };
+</script>
+{{{ SCRIPT }}}
+</body>
+</html>
