@@ -114,7 +114,15 @@ def flash(port, uf2):
     else:
         sys.exit("the board's USB drive did not appear; hold BOOTSEL while plugging it in")
     print(f"copying {uf2} to {drives[0]}")
-    shutil.copy(uf2, drives[0])
+    # macOS mounts the drive a moment before it can be written to.
+    for attempt in range(20):
+        try:
+            shutil.copyfile(uf2, os.path.join(drives[0], os.path.basename(uf2)))
+            break
+        except PermissionError:
+            time.sleep(0.25)
+    else:
+        sys.exit(f"could not write to {drives[0]}")
     print("done; the board restarts into the new firmware")
 
 
