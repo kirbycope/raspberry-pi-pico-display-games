@@ -209,7 +209,7 @@ static life_t world;
 static life_watch_t watch;
 static bool ready, running = true;
 static int pattern, speed = 1;
-static uint32_t acc, overlay_ms, settle_ms, anim_ms;
+static uint32_t acc, overlay_ms, settle_ms;
 static bool help;
 
 static uint16_t pal_alive[LIFE_AGE_MAX + 1], pal_trail[LIFE_TRAIL + 1];
@@ -256,7 +256,6 @@ static void life_enter(void) {
     }
     running = true;
     help = true;
-    anim_ms = 0;
     show_overlay();
 }
 
@@ -298,7 +297,6 @@ static void panel(int x, int y, const char *const *lines, int count, const uint1
 }
 
 static bool life_frame(const input_t *in, uint32_t dt) {
-    anim_ms += dt;
     if (in->pressed & BTN_A) {
         running = !running;
         acc = 0;

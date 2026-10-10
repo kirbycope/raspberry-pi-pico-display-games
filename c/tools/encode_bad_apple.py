@@ -2,10 +2,10 @@
 
     python c/tools/encode_bad_apple.py <video file> [--out c/data/bad_apple.bin]
 
-The video is not in this repository and neither is the output: both stay
-on your machine (c/data/ is git-ignored). Any copy of the shadow-art PV
-works; the usual one is 480x360 at 30 fps, 6,572 frames. Needs ffmpeg on the
-PATH and numpy.
+The video is not in this repository; its encoded frames are, as
+c/data/bad_apple.bin, so this is only needed to encode them again. Any copy
+of the shadow-art PV works; the usual one is 480x360 at 30 fps, 6,572
+frames. Needs ffmpeg on the PATH and numpy.
 
 Each frame is scaled to 180x135 (4:3, the panel's full height) and
 thresholded to black and white. It is then coded one of four ways, whichever
