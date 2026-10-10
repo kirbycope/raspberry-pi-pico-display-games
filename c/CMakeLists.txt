@@ -48,7 +48,7 @@ if(PDG_WEB)
     target_compile_definitions(pdg_web PRIVATE PDG_SIM PDG_SDL PDG_WEB)
     target_compile_options(pdg_web PRIVATE -sUSE_SDL=2 -Wall -Wextra -Wno-unused-parameter)
     target_link_options(pdg_web PRIVATE -sUSE_SDL=2 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1
-        -sEXPORTED_FUNCTIONS=_main,_web_button --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html)
+        -sEXPORTED_FUNCTIONS=_main,_web_button,_web_home --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html)
     # Bad Apple's frames load beside the page as index.data, read on opening the app.
     if(EXISTS "${BAD_APPLE_BIN}")
         target_link_options(pdg_web PRIVATE --preload-file ${BAD_APPLE_BIN}@/bad_apple.bin)
