@@ -220,9 +220,28 @@ SDL2 to show a window; without it only scripted runs work.
 cd c
 cmake -S . -B build-host -G Ninja -DPDG_HOST=ON
 cmake --build build-host
-./build-host/pdg_sim                 # a window; the A, B, X and Y keys are the buttons
-./build-host/pdg_tests               # the unit tests
+./build-host/pdg_sim                         # play it in a window
+PDG_APP="Pico Quest" ./build-host/pdg_sim    # or open one app straight away
+./build-host/pdg_tests                       # the unit tests
 ```
+
+On a Mac whose newest command-line SDK breaks the linker (`ld: tapi error: malformed file`), add
+`-DCMAKE_OSX_SYSROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX26.sdk` to the first `cmake`
+line. SDL2 comes from `brew install sdl2`.
+
+Playing it:
+
+| Key | Does |
+| --- | --- |
+| A, B, X, Y | the Display Pack's four buttons |
+| Esc | quit |
+
+- **It behaves like the board:** A and B move in the menu, Y opens an app, holding A and B for a
+  second leaves it, and attract mode starts after 30 seconds idle.
+- **Upright apps:** the window turns upright too.
+- **The LED:** the strip under the screen glows its colour.
+- **Saves:** kept in `pdg_save.bin` in the folder you run it from.
+- **After editing the code:** rebuild with `cmake --build build-host`.
 
 The simulator can also run headless from a script on a virtual clock, which is how the screenshots
 on this page were made. See the comment at the top of
